@@ -1,7 +1,6 @@
 import React from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-export const runtime = 'edge';
 import { notFound } from 'next/navigation';
 import { CodeEditor } from '@/components/editors/CodeEditor'; // We will need to Client Wrapper this if it's not "use client"
 import { PDFViewer } from '@/components/previewers/PDFViewer';

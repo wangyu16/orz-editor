@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client, R2_BUCKET_NAME } from '@/lib/r2';
 
-export const runtime = 'edge';
 
 // We use a direct Supabase client with Service Role Key here to bypass RLS
 // because we are verifying access via the `share_token` manually.

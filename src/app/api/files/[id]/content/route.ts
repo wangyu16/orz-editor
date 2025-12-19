@@ -3,7 +3,6 @@ import { createClient } from '@/lib/supabase-server'
 import { s3Client, R2_BUCKET_NAME } from '@/lib/r2'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 
-export const runtime = 'edge';
 
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 
