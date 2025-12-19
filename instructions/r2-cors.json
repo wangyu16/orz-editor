@@ -1,0 +1,20 @@
+[
+    {
+        "AllowedOrigins": [
+            "http://localhost:3000",
+            "https://your-custom-subdomain.yourdomain.com"
+        ],
+        "AllowedMethods": [
+            "GET",
+            "PUT",
+            "POST",
+            "DELETE",
+            "HEAD"
+        ],
+        "AllowedHeaders": [
+            "*"
+        ],
+        "ExposeHeaders": [],
+        "MaxAgeSeconds": 3000
+    }
+]
