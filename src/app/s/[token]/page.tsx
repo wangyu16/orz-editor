@@ -158,8 +158,7 @@ export default async function PublicPage({ params }: { params: Promise<{ token: 
 
             const command = new GetObjectCommand({
                 Bucket: R2_BUCKET_NAME,
-                Key: item.kind === 'file' ? item.uuid_r2 : '',
-                // Defensive check - we know it's file but TS doesn't from 'type' variable
+                Key: item.uuid_r2,
             });
             const s3Item = await s3Client.send(command);
             content = await s3Item.Body?.transformToString() || '';
