@@ -7,6 +7,7 @@ import { PDFViewer } from '@/components/previewers/PDFViewer';
 import { ImageViewer } from '@/components/previewers/ImageViewer';
 import { MediaPlayer } from '@/components/previewers/MediaPlayer';
 
+import { IsolatedPreview } from '@/components/editors/IsolatedPreview';
 import { MarkdownPreview } from '@/components/editors/MarkdownPreview';
 
 interface Props {
@@ -15,10 +16,46 @@ interface Props {
     content: string; // Only for text/code
     rawUrl: string;
     settings?: any;
+    precompiledHtml?: string;
+    precompiledCss?: string;
 }
 
-export function PublicFileRenderer({ item, category, content, rawUrl, settings }: Props) {
+export function PublicFileRenderer({ item, category, content, rawUrl, settings, precompiledHtml, precompiledCss }: Props) {
     if (category === 'markdown_split') {
+        if (precompiledHtml && precompiledCss) {
+            const staticHead = `
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+                <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markdown.min.js"></script>
+            `;
+            const dynamicStyles = `
+                ${precompiledCss}
+                h1, h2, h3, h4, h5, h6 { color: var(--decoration-color, var(--text-color)); }
+                a { color: var(--link-color); text-decoration: none; }
+                a:hover { color: var(--link-hover); text-decoration: underline; }
+                body { margin: 0; }
+                ::-webkit-scrollbar { width: 8px; height: 8px; }
+                ::-webkit-scrollbar-track { background: transparent; }
+                ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+            `;
+
+            return (
+                <div className="h-full w-full bg-zinc-950">
+                    <IsolatedPreview
+                        content={precompiledHtml}
+                        initialHead={staticHead}
+                        styleContent={dynamicStyles}
+                    />
+                </div>
+            );
+        }
         return (
             <MarkdownPreview content={content} settings={settings} fileId={item.id} />
         );

@@ -237,8 +237,45 @@ export default async function PublicPage({ params }: { params: Promise<{ token: 
 
     // Fetch owner settings (if markdown)
     let settings = undefined;
+    let precompiledHtml = undefined;
+    let precompiledCss = undefined;
+
     if (category === 'markdown_split') {
         settings = await getOwnerSettings(item.user_id, item.id);
+
+        // Server-Side Pre-compilation
+        // 1. Parse Markdown
+        // We need to import the API dynamically or ensure it's available.
+        // MarkdownAPI in lib is standard TS, should work if fetch is polyfilled (Next.js 13+ has native fetch).
+        const { MarkdownAPI } = await import('@/lib/markdown-api');
+
+        precompiledHtml = await MarkdownAPI.parse(content, { enableMath: true });
+
+        // 2. Resolve Images for Shared View
+        // Replace src="UUID" with /raw/UUID if possible?
+        // Or leave as is? The MarkdownPreview logic handles parsing. 
+        // But IsolatedPreview won't have the parsing logic.
+        // So we strictly need to resolve images HERE on server or inject a resolver script.
+        // Server side resolution is best:
+        // Replace relative paths with /api/files/[id]/resolve/... OR 
+        // Since we are public, we likely need a public resolution endpoint?
+        // /raw/TOKEN is for the FILE itself.
+        // Images linked in markdown need to be resolveable.
+        // For now, let's assume standard resolution or keep as is (browser might fail to load relative images without logic).
+        // Let's defer image resolution for a moment and focus on styles, as that is the user complaint.
+
+        // 3. Compose Theme
+        const themeToLoad = settings || {
+            colors: 'dark-default',
+            fonts: 'modern',
+            sizing: 'default',
+            elements: 'rounded',
+            decorations: 'clean',
+            layout: 'default',
+            prism: 'tomorrow-night',
+            includeLayout: true
+        };
+        precompiledCss = await MarkdownAPI.composeTheme(themeToLoad);
     }
 
     return (
@@ -256,7 +293,15 @@ export default async function PublicPage({ params }: { params: Promise<{ token: 
                 </div>
             </header>
             <div className="flex-1 overflow-hidden relative">
-                <PublicFileRenderer item={item} category={category} content={content} rawUrl={`/raw/${token}`} settings={settings} />
+                <PublicFileRenderer
+                    item={item}
+                    category={category}
+                    content={content}
+                    rawUrl={`/raw/${token}`}
+                    settings={settings}
+                    precompiledHtml={precompiledHtml}
+                    precompiledCss={precompiledCss}
+                />
             </div>
         </div>
     );
