@@ -36,6 +36,7 @@ async function getFolderContents(folderId: string) {
 }
 
 async function getOwnerSettings(userId: string, fileId: string) {
+    console.log(`[PublicView] Getting settings for user ${userId}, file ${fileId}`);
     try {
         const { GetObjectCommand } = await import('@aws-sdk/client-s3');
         const { s3Client, R2_BUCKET_NAME } = await import('@/lib/r2');
@@ -46,16 +47,26 @@ async function getOwnerSettings(userId: string, fileId: string) {
             .eq('user_id', userId)
             .eq('name', '.settings')
             .is('parent_id', null)
+            .eq('is_deleted', false)
             .single();
-        if (!rootSettings) return null;
+
+        if (!rootSettings) {
+            console.log('[PublicView] .settings folder not found');
+            return null;
+        }
 
         // 2. Find markdown folder
         const { data: mdFolder } = await supabaseAdmin.from('folders')
             .select('id')
             .eq('parent_id', rootSettings.id)
             .eq('name', 'markdown')
+            .eq('is_deleted', false)
             .single();
-        if (!mdFolder) return null;
+
+        if (!mdFolder) {
+            console.log('[PublicView] markdown settings folder not found');
+            return null;
+        }
 
         // Helper to fetch JSON from R2 via Supabase File record
         const loadJsonFile = async (fileName: string) => {
@@ -63,8 +74,13 @@ async function getOwnerSettings(userId: string, fileId: string) {
                 .select('*')
                 .eq('folder_id', mdFolder.id)
                 .eq('name', fileName)
+                .eq('is_deleted', false)
                 .single();
-            if (!file) return null;
+
+            if (!file) {
+                console.log(`[PublicView] Settings file ${fileName} not found`);
+                return null;
+            }
 
             const command = new GetObjectCommand({
                 Bucket: R2_BUCKET_NAME,
@@ -78,12 +94,11 @@ async function getOwnerSettings(userId: string, fileId: string) {
         // 3. Try associations.json
         let presetName = 'default';
         try {
-            // Find associations.json in SETTINGS root (not markdown folder usually, but check implementation)
-            // Implementation says associations.json is in SETTINGS_ROOT (.settings), not markdown folder.
             const { data: assocFile } = await supabaseAdmin.from('files')
                 .select('*')
                 .eq('folder_id', rootSettings.id)
                 .eq('name', 'associations.json')
+                .eq('is_deleted', false)
                 .single();
 
             if (assocFile) {
@@ -94,23 +109,39 @@ async function getOwnerSettings(userId: string, fileId: string) {
                 const s3Item = await s3Client.send(command);
                 const str = await s3Item.Body?.transformToString();
                 const associations = str ? JSON.parse(str) : {};
+                console.log('[PublicView] Associations loaded:', associations);
+
                 if (associations[fileId]) {
                     presetName = associations[fileId];
+                    console.log(`[PublicView] Found association for ${fileId}: ${presetName}`);
+                } else {
+                    console.log(`[PublicView] No association found for ${fileId}`);
                 }
+            } else {
+                console.log('[PublicView] associations.json not found');
             }
-        } catch (e) { /* ignore */ }
+        } catch (e) {
+            console.error('[PublicView] Error reading associations:', e);
+        }
 
         // 4. Load the preset (default or associated)
-        const settings = await loadJsonFile(presetName.endsWith('.json') ? presetName : `${presetName}.json`);
+        const targetFile = presetName.endsWith('.json') ? presetName : `${presetName}.json`;
+        console.log(`[PublicView] Loading preset file: ${targetFile}`);
+
+        const settings = await loadJsonFile(targetFile);
         if (settings && settings.theme) return settings.theme;
 
         // Fallback if specific preset failed but default might exist (if we tried a custom one first)
         if (presetName !== 'default') {
+            console.log('[PublicView] Falling back to default.json');
             const def = await loadJsonFile('default.json');
             return def?.theme;
         }
 
-    } catch { return null; }
+    } catch (err) {
+        console.error('[PublicView] Critical error in getOwnerSettings:', err);
+        return null;
+    }
     return null;
 }
 
