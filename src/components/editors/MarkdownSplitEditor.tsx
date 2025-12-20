@@ -3,7 +3,7 @@ import { ExplorerItem } from '@/lib/types';
 import { CodeEditor } from './CodeEditor';
 import { MarkdownPreview } from './MarkdownPreview';
 import { MarkdownSettingsModal } from './MarkdownSettingsModal';
-import { ThemeComposition } from '@/lib/markdown-api';
+import { MarkdownAPI, ThemeComposition } from '@/lib/markdown-api';
 import { SettingsAPI } from '@/lib/settings-api';
 import { Save, Columns, Eye, FileCode, Settings, Image as ImageIcon, Loader2, History, Download } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
