@@ -160,13 +160,10 @@ export const SettingsAPI = {
 
     async listSettings(): Promise<string[]> {
         const supabase = createClient();
-
-        // Quick check for auth to avoid 401s
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return [];
 
         const folderId = await this.ensureSettingsFolder();
-
         const { data: files } = await supabase
             .from('files')
             .select('name')
@@ -174,5 +171,90 @@ export const SettingsAPI = {
             .eq('is_deleted', false);
 
         return files ? files.map(f => f.name.replace('.json', '')) : [];
+    },
+
+    async getAssociation(fileId: string): Promise<string | null> {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return null;
+
+        const rootId = await ensureFolder(supabase, SETTINGS_ROOT, null);
+
+        // Find associations.json
+        const { data: file } = await supabase
+            .from('files')
+            .select('*')
+            .eq('folder_id', rootId)
+            .eq('name', 'associations.json')
+            .eq('is_deleted', false)
+            .single();
+
+        if (!file) return null;
+
+        try {
+            const res = await fetch(`/api/files/${file.id}/content`);
+            if (!res.ok) return null;
+            const associations = await res.json();
+            return associations[fileId] || null;
+        } catch {
+            return null;
+        }
+    },
+
+    async saveAssociation(fileId: string, presetName: string): Promise<void> {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const rootId = await ensureFolder(supabase, SETTINGS_ROOT, null);
+
+        // Fetch existing
+        const { data: file } = await supabase
+            .from('files')
+            .select('*')
+            .eq('folder_id', rootId)
+            .eq('name', 'associations.json')
+            .eq('is_deleted', false)
+            .single();
+
+        let associations: Record<string, string> = {};
+
+        if (file) {
+            try {
+                const res = await fetch(`/api/files/${file.id}/content`);
+                if (res.ok) associations = await res.json();
+            } catch (e) {/* ignore */ }
+        }
+
+        associations[fileId] = presetName;
+        const content = JSON.stringify(associations, null, 2);
+
+        if (file) {
+            await fetch(`/api/files/${file.id}/content`, {
+                method: 'POST',
+                body: content
+            });
+        } else {
+            // Create new
+            const { data: newFile, error } = await supabase
+                .from('files')
+                .insert({
+                    name: 'associations.json',
+                    folder_id: rootId,
+                    user_id: user.id,
+                    type: 'application/json',
+                    size: content.length,
+                    uuid_r2: crypto.randomUUID()
+                })
+                .select()
+                .single();
+
+            if (error || !newFile) throw error;
+
+            await fetch(`/api/files/${newFile.id}/content`, {
+                method: 'POST',
+                body: content
+            });
+        }
     }
 };

@@ -57,6 +57,36 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
         contentRef.current = content;
     }, [content]);
 
+    // Load Settings (Persistence)
+    useEffect(() => {
+        if (!file || isGuest) return; // Guest support for settings is limited (in-memory only for now)
+
+        let mounted = true;
+        const initSettings = async () => {
+            try {
+                // 1. Check for specific association
+                const presetName = await SettingsAPI.getAssociation(file.id);
+                if (presetName) {
+                    const preset = await SettingsAPI.loadSettings(presetName);
+                    if (preset && mounted) {
+                        setSettings(preset.theme);
+                        return;
+                    }
+                }
+
+                // 2. Fallback to default
+                const defaultPreset = await SettingsAPI.loadSettings('default');
+                if (defaultPreset && mounted) {
+                    setSettings(defaultPreset.theme);
+                }
+            } catch (err) {
+                console.error("Failed to init settings", err);
+            }
+        };
+        initSettings();
+        return () => { mounted = false; };
+    }, [file.id, isGuest]);
+
     // File Close Versioning (Unmount)
     useEffect(() => {
         return () => {
@@ -67,6 +97,18 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    const handleApplySettings = async (newSettings: ThemeComposition, presetName?: string) => {
+        setSettings(newSettings);
+        if (presetName && !isGuest) {
+            // Save association
+            try {
+                await SettingsAPI.saveAssociation(file.id, presetName);
+            } catch (e) {
+                console.error("Failed to save association", e);
+            }
+        }
+    };
 
     // Auto-Save Effect
     useEffect(() => {
@@ -400,7 +442,7 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
                 <MarkdownSettingsModal
                     currentSettings={settings}
                     onClose={() => setShowSettings(false)}
-                    onApply={(newSettings) => setSettings(newSettings)}
+                    onApply={handleApplySettings}
                 />
             )}
         </div>

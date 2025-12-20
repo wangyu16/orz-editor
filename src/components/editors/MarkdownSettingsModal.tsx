@@ -29,12 +29,16 @@ export function MarkdownSettingsModal({ onClose, onApply, currentSettings }: Mar
     const [loading, setLoading] = useState(true);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
+    const [presetList, setPresetList] = useState<string[]>([]);
+
     useEffect(() => {
         let mounted = true;
         const load = async () => {
             const opts = await MarkdownAPI.getThemeOptions();
+            const presets = await SettingsAPI.listSettings();
             if (mounted) {
                 setOptions(opts);
+                setPresetList(presets);
                 setLoading(false);
             }
         };
@@ -55,8 +59,14 @@ export function MarkdownSettingsModal({ onClose, onApply, currentSettings }: Mar
                 theme: settings
             });
             setSaveStatus('saved');
+
+            // Refresh list if new
+            if (!presetList.includes(savedName)) {
+                setPresetList(prev => [...prev, savedName]);
+            }
+
             setTimeout(() => setSaveStatus('idle'), 2000);
-            onApply(settings); // Apply on save
+            onApply(settings, savedName); // Apply on save and associate
         } catch (err) {
             console.error(err);
             setSaveStatus('idle');
@@ -64,11 +74,16 @@ export function MarkdownSettingsModal({ onClose, onApply, currentSettings }: Mar
         }
     };
 
-    const handleLoad = async (e: React.FormEvent) => {
-        // In a real app, we would list saved settings.
-        // For MVP, allow typing a name to load? 
-        // Or maybe just list generic options.
-        // Let's implement basic loading if we have time, but sticking to "Save" and "Apply" is core.
+    const handleLoad = async (name: string) => {
+        try {
+            const loaded = await SettingsAPI.loadSettings(name);
+            if (loaded) {
+                setSettings(loaded.theme);
+                setSavedName(name); // Set active name
+            }
+        } catch (err) {
+            console.error("Failed to load preset", err);
+        }
     };
 
     // Preview Content: A sample to show off the theme
@@ -133,23 +148,56 @@ $E = mc^2$
                         <hr className="border-zinc-800" />
 
                         {/* Save Controls */}
-                        <div className="space-y-3">
-                            <label className="text-xs uppercase text-zinc-500 font-bold tracking-wider">Save Preset</label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={savedName}
-                                    onChange={(e) => setSavedName(e.target.value)}
-                                    className="bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-sm text-white flex-1 focus:outline-none focus:border-accent"
-                                    placeholder="Preset Name"
-                                />
-                                <button
-                                    onClick={handleSave}
-                                    className="bg-accent hover:bg-accent/90 text-white p-2 rounded flex items-center justify-center transition-colors disabled:opacity-50"
-                                    disabled={saveStatus === 'saving'}
-                                >
-                                    {saveStatus === 'saved' ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-                                </button>
+                        {/* Save Controls */}
+                        <div className="space-y-6">
+                            <hr className="border-zinc-800" />
+
+                            {/* Load Preset */}
+                            <div className="space-y-2">
+                                <label className="text-xs uppercase text-zinc-500 font-bold tracking-wider">Load Preset</label>
+                                <div className="flex gap-2">
+                                    <select
+                                        className="bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-sm text-white flex-1 focus:outline-none focus:border-accent"
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val) {
+                                                setSavedName(val);
+                                                handleLoad(val);
+                                            }
+                                        }}
+                                        value=""
+                                    >
+                                        <option value="" disabled>Select a preset...</option>
+                                        {presetList.map(name => (
+                                            <option key={name} value={name}>{name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Save Current */}
+                            <div className="space-y-2">
+                                <label className="text-xs uppercase text-zinc-500 font-bold tracking-wider">Save As</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={savedName}
+                                        onChange={(e) => setSavedName(e.target.value)}
+                                        className="bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-sm text-white flex-1 focus:outline-none focus:border-accent"
+                                        placeholder="Preset Name"
+                                    />
+                                    <button
+                                        onClick={handleSave}
+                                        className="bg-accent hover:bg-accent/90 text-white p-2 rounded flex items-center justify-center transition-colors disabled:opacity-50"
+                                        disabled={saveStatus === 'saving'}
+                                        title="Save Preset"
+                                    >
+                                        {saveStatus === 'saved' ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-zinc-500">
+                                    Save as <strong>default</strong> to apply to new files automatically.
+                                </p>
                             </div>
                         </div>
                     </div>
