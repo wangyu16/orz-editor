@@ -35,8 +35,11 @@ async function getFolderContents(folderId: string) {
     return [...(folders || []), ...(files || [])] as ExplorerItem[];
 }
 
-async function getOwnerSettings(userId: string) {
+async function getOwnerSettings(userId: string, fileId: string) {
     try {
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const { s3Client, R2_BUCKET_NAME } = await import('@/lib/r2');
+
         // 1. Find .settings folder
         const { data: rootSettings } = await supabaseAdmin.from('folders')
             .select('id')
@@ -54,27 +57,59 @@ async function getOwnerSettings(userId: string) {
             .single();
         if (!mdFolder) return null;
 
-        // 3. Find default.json file
-        const { data: file } = await supabaseAdmin.from('files')
-            .select('*')
-            .eq('folder_id', mdFolder.id)
-            .eq('name', 'default.json')
-            .single();
-        if (!file) return null;
+        // Helper to fetch JSON from R2 via Supabase File record
+        const loadJsonFile = async (fileName: string) => {
+            const { data: file } = await supabaseAdmin.from('files')
+                .select('*')
+                .eq('folder_id', mdFolder.id)
+                .eq('name', fileName)
+                .single();
+            if (!file) return null;
 
-        // 4. Fetch content from R2
-        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const { s3Client, R2_BUCKET_NAME } = await import('@/lib/r2');
-        const command = new GetObjectCommand({
-            Bucket: R2_BUCKET_NAME,
-            Key: file.uuid_r2
-        });
-        const s3Item = await s3Client.send(command);
-        const json = await s3Item.Body?.transformToString();
-        if (json) {
-            const parsed = JSON.parse(json);
-            return parsed.theme;
+            const command = new GetObjectCommand({
+                Bucket: R2_BUCKET_NAME,
+                Key: file.uuid_r2
+            });
+            const s3Item = await s3Client.send(command);
+            const str = await s3Item.Body?.transformToString();
+            return str ? JSON.parse(str) : null;
+        };
+
+        // 3. Try associations.json
+        let presetName = 'default';
+        try {
+            // Find associations.json in SETTINGS root (not markdown folder usually, but check implementation)
+            // Implementation says associations.json is in SETTINGS_ROOT (.settings), not markdown folder.
+            const { data: assocFile } = await supabaseAdmin.from('files')
+                .select('*')
+                .eq('folder_id', rootSettings.id)
+                .eq('name', 'associations.json')
+                .single();
+
+            if (assocFile) {
+                const command = new GetObjectCommand({
+                    Bucket: R2_BUCKET_NAME,
+                    Key: assocFile.uuid_r2
+                });
+                const s3Item = await s3Client.send(command);
+                const str = await s3Item.Body?.transformToString();
+                const associations = str ? JSON.parse(str) : {};
+                if (associations[fileId]) {
+                    presetName = associations[fileId];
+                }
+            }
+        } catch (e) { /* ignore */ }
+
+        // 4. Load the preset (default or associated)
+        const settings = await loadJsonFile(presetName.endsWith('.json') ? presetName : `${presetName}.json`);
+        if (settings && settings.theme) return settings.theme;
+
+        // Fallback if specific preset failed but default might exist (if we tried a custom one first)
+        if (presetName !== 'default') {
+            const def = await loadJsonFile('default.json');
+            return def?.theme;
         }
+
     } catch { return null; }
     return null;
 }
@@ -172,7 +207,7 @@ export default async function PublicPage({ params }: { params: Promise<{ token: 
     // Fetch owner settings (if markdown)
     let settings = undefined;
     if (category === 'markdown_split') {
-        settings = await getOwnerSettings(item.user_id);
+        settings = await getOwnerSettings(item.user_id, item.id);
     }
 
     return (

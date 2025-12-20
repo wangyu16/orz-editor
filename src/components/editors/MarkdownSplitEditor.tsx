@@ -58,8 +58,13 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
     }, [content]);
 
     // Load Settings (Persistence)
+    const [settingsLoaded, setSettingsLoaded] = useState(false);
+
     useEffect(() => {
-        if (!file || isGuest) return; // Guest support for settings is limited (in-memory only for now)
+        if (!file || isGuest) {
+            setSettingsLoaded(true);
+            return;
+        }
 
         let mounted = true;
         const initSettings = async () => {
@@ -70,6 +75,7 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
                     const preset = await SettingsAPI.loadSettings(presetName);
                     if (preset && mounted) {
                         setSettings(preset.theme);
+                        setSettingsLoaded(true);
                         return;
                     }
                 }
@@ -81,6 +87,8 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
                 }
             } catch (err) {
                 console.error("Failed to init settings", err);
+            } finally {
+                if (mounted) setSettingsLoaded(true);
             }
         };
         initSettings();
@@ -407,20 +415,27 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
 
 
                 <div
-                    className={`${mode === 'editor' ? 'hidden' : 'block'} h-full bg-zinc-950 border-l border-zinc-800`}
+                    className={`${mode === 'editor' ? 'hidden' : 'block'} h-full bg-zinc-950 border-l border-zinc-800 relative`}
                     style={{
                         width: mode === 'split' ? `${100 - splitRatio}%` : '100%',
                         pointerEvents: isDragging ? 'none' : 'auto'
                     }}
                 >
-                    <MarkdownPreview
-                        content={content}
-                        settings={settings}
-                        fileId={file.id}
-                        resolveImage={onResolveImage}
-                        onScroll={handlePreviewScroll}
-                        scrollPercentage={previewScrollPct}
-                    />
+                    {!settingsLoaded ? (
+                        <div className="absolute inset-0 flex items-center justify-center text-zinc-500">
+                            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                            <span className="text-xs">Loading styles...</span>
+                        </div>
+                    ) : (
+                        <MarkdownPreview
+                            content={content}
+                            settings={settings}
+                            fileId={file.id}
+                            resolveImage={onResolveImage}
+                            onScroll={handlePreviewScroll}
+                            scrollPercentage={previewScrollPct}
+                        />
+                    )}
                 </div>
             </div>
 
