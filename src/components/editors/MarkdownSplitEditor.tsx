@@ -254,7 +254,7 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
             if (html && (onResolveImage || !isGuest)) {
                 const matches = Array.from(html.matchAll(regex));
                 if (matches.length > 0) {
-                    const replacements = await Promise.all(matches.map(async (m) => {
+                    const replacements = await Promise.all(matches.map(async (m: RegExpMatchArray) => {
                         const original = m[0];
                         const path = m[1];
                         let resolved = undefined;
