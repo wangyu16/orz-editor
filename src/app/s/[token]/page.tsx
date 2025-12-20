@@ -6,7 +6,7 @@ import { CodeEditor } from '@/components/editors/CodeEditor'; // We will need to
 import { PDFViewer } from '@/components/previewers/PDFViewer';
 import { ImageViewer } from '@/components/previewers/ImageViewer';
 import { MediaPlayer } from '@/components/previewers/MediaPlayer';
-import { ExplorerItem } from '@/lib/types';
+import { ExplorerItem, FileMetadata } from '@/lib/types';
 import { FileIcon, Folder, Download } from 'lucide-react';
 import { getCategory } from '@/lib/fileUtils';
 
@@ -158,7 +158,13 @@ export default async function PublicPage({ params }: { params: Promise<{ token: 
 
             const command = new GetObjectCommand({
                 Bucket: R2_BUCKET_NAME,
-                Key: item.uuid_r2,
+                import { ExplorerItem, FileMetadata } from '@/lib/types';
+
+                // ... lines 157-158
+                const command = new GetObjectCommand({
+                    Bucket: R2_BUCKET_NAME,
+                    Key: (item as FileMetadata).uuid_r2,
+                });
             });
             const s3Item = await s3Client.send(command);
             content = await s3Item.Body?.transformToString() || '';
