@@ -290,17 +290,22 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
     <title>${file.name}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
     <style>
+        body { margin: 0; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
         ${css}
         /* Override Heading Colors to use the Theme's Accent/Decoration Color */
-        h1, h2, h3, h4, h5, h6 { color: var(--decoration-color, var(--text-color)); }
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--decoration-color, var(--text-color));
+        }
+        /* Make links use the link color */
         a { color: var(--link-color); text-decoration: none; }
         a:hover { color: var(--link-hover); text-decoration: underline; }
-        body { margin: 0; padding: 0; background: var(--bg-color); color: var(--text-color); }
-        .markdown-preview { min-height: 100vh; }
     </style>
 </head>
 <body>
-    <div class="markdown-preview line-numbers">
+    <div id="root">
         ${html}
     </div>
     <!-- Prism Scripts -->
