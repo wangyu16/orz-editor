@@ -7,7 +7,7 @@ import { MarkdownPreview } from './MarkdownPreview';
 
 interface MarkdownSettingsModalProps {
     onClose: () => void;
-    onApply: (settings: ThemeComposition) => void;
+    onApply: (settings: ThemeComposition, presetName?: string) => void;
     currentSettings?: ThemeComposition;
 }
 
