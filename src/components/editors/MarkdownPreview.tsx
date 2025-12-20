@@ -109,9 +109,8 @@ export function MarkdownPreview({ content, settings, fileId, resolveImage, onScr
         return () => { mounted = false; };
     }, [settings]);
 
-    const headContent = `
+    const staticHead = `
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
-        <style>${css}</style>
         <!-- Prism Core -->
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
         <!-- Prism Languages -->
@@ -123,15 +122,17 @@ export function MarkdownPreview({ content, settings, fileId, resolveImage, onScr
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markdown.min.js"></script>
-        <style>
-            /* Override Heading Colors to use the Theme's Accent/Decoration Color */
-            h1, h2, h3, h4, h5, h6 {
-                color: var(--decoration-color, var(--text-color));
-            }
-            /* Make links use the link color */
-            a { color: var(--link-color); text-decoration: none; }
-            a:hover { color: var(--link-hover); text-decoration: underline; }
-        </style>
+    `;
+
+    const dynamicStyles = `
+        ${css}
+        /* Override Heading Colors to use the Theme's Accent/Decoration Color */
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--decoration-color, var(--text-color));
+        }
+        /* Make links use the link color */
+        a { color: var(--link-color); text-decoration: none; }
+        a:hover { color: var(--link-hover); text-decoration: underline; }
     `;
 
     return (
@@ -143,7 +144,8 @@ export function MarkdownPreview({ content, settings, fileId, resolveImage, onScr
             )}
             <IsolatedPreview
                 content={html || '<div class="p-4 text-zinc-500">Parsing...</div>'}
-                headContent={headContent}
+                initialHead={staticHead}
+                styleContent={dynamicStyles}
                 onScroll={onScroll}
                 scrollPercentage={scrollPercentage}
             />

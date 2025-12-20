@@ -3,12 +3,13 @@ import React, { useEffect, useRef, useState } from 'react';
 // Add onScroll prop to communicate back to parent
 interface IsolatedPreviewProps {
     content: string;
-    headContent?: string;
+    initialHead?: string;   // Static head content (scripts) baked into srcDoc
+    styleContent?: string;  // Dynamic CSS content
     onScroll?: (percentage: number) => void;
     scrollPercentage?: number | null; // Receive scroll from parent
 }
 
-export function IsolatedPreview({ content, headContent = '', onScroll, scrollPercentage }: IsolatedPreviewProps) {
+export function IsolatedPreview({ content, initialHead = '', styleContent = '', onScroll, scrollPercentage }: IsolatedPreviewProps) {
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const [initialized, setInitialized] = useState(false);
 
@@ -16,34 +17,40 @@ export function IsolatedPreview({ content, headContent = '', onScroll, scrollPer
     const [isScrolling, setIsScrolling] = useState(false);
 
     // Initial "Skeleton" srcDoc with the updater script
+    // We inject initialHead here so scripts execute immediately on load
     const [initialSrcDoc] = useState(`
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-                body { margin: 0; } 
-                /* Hide scrollbar for cleaner look? No, user needs to see it. */
-                ::-webkit-scrollbar { width: 8px; height: 8px; }
-                ::-webkit-scrollbar-track { background: transparent; }
-                ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
-            </style>
+            ${initialHead}
+            <style id="dynamic-styles"></style>
             <script>
                 let isProgrammaticScroll = false;
                 let scrollTimeout;
 
                 window.addEventListener('message', (event) => {
-                    const { type, body, head, percent } = event.data;
+                    const { type, body, styles, percent } = event.data;
                     
                     if (type === 'update') {
                         // Preserve scroll logic (same as before)
                         const scrollY = window.scrollY;
                         const scrollX = window.scrollX;
                         
-                        if (head && document.head.innerHTML !== head) document.head.innerHTML = head;
+                        // Update Body
                         if (body !== undefined) document.body.innerHTML = body;
-                        if (window.Prism) window.Prism.highlightAll();
+                        
+                        // Update Styles
+                        if (styles !== undefined) {
+                            const styleEl = document.getElementById('dynamic-styles');
+                            if (styleEl) styleEl.textContent = styles;
+                        }
+
+                        // Re-highlight Code
+                        if (window.Prism) {
+                             setTimeout(() => window.Prism.highlightAll(), 0);
+                        }
                         
                         window.scrollTo(scrollX, scrollY);
                     }
@@ -114,16 +121,12 @@ export function IsolatedPreview({ content, headContent = '', onScroll, scrollPer
             iframe.contentWindow?.postMessage({
                 type: 'update',
                 body: content,
-                head: `
-                    <meta charset="utf-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1">
-                    <style>
-                        body { margin: 0; }
-                        ::-webkit-scrollbar { width: 8px; height: 8px; }
-                        ::-webkit-scrollbar-track { background: transparent; }
-                        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
-                    </style>
-                    ${headContent}
+                styles: `
+                    body { margin: 0; }
+                    ::-webkit-scrollbar { width: 8px; height: 8px; }
+                    ::-webkit-scrollbar-track { background: transparent; }
+                    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+                    ${styleContent}
                 `
             }, '*');
         };
@@ -132,7 +135,7 @@ export function IsolatedPreview({ content, headContent = '', onScroll, scrollPer
             sendMessage();
         }
 
-    }, [content, headContent, initialized]);
+    }, [content, styleContent, initialized]);
 
     const handleLoad = () => {
         setInitialized(true);
