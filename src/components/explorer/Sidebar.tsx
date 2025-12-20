@@ -64,9 +64,6 @@ export function Sidebar({
         <div className={cn("bg-sidebar border-r border-border flex flex-col pt-4 transition-all duration-300", className)}>
             <div className="px-4 mb-6 flex items-center justify-between">
                 <h1 className="text-xl font-bold tracking-tight text-white/90">ORZ Editor</h1>
-                <button className="p-1.5 hover:bg-hover rounded-full text-foreground/50 hover:text-white transition-colors">
-                    <Settings className="w-4 h-4" />
-                </button>
             </div>
 
             <div className="px-4 mb-4 space-y-2">

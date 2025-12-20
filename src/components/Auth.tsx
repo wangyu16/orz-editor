@@ -21,7 +21,13 @@ export function Auth({ onGuest }: { onGuest: () => void }) {
     const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                emailRedirectTo: `${window.location.origin}/auth/callback`
+            }
+        });
         if (error) alert(error.message);
         else alert('Check your email for the confirmation link!');
         setLoading(false);

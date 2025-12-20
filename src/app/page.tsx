@@ -19,6 +19,20 @@ import { ShareDialog } from '@/components/explorer/ShareDialog';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
+// Breadcrumb Title Component
+const BreadcrumbTitle = ({ item, isGuest, initialName }: { item: IExplorerItem, isGuest: boolean, initialName: string }) => {
+  const { data } = useSWR<{ path: string }>(
+    !isGuest && item.kind === 'file' ? `/api/files/${item.id}/breadcrumb` : null,
+    fetcher
+  );
+
+  if (isGuest) return <span title={initialName}>{initialName}</span>;
+
+  // Auth Mode
+  const displayName = data?.path || initialName;
+  return <span title={displayName}>{displayName}</span>;
+};
+
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [isGuest, setIsGuest] = useState(false);
@@ -52,7 +66,7 @@ export default function Home() {
     restoreItems,
     permanentDeleteItems,
     downloadFile, guestTree, searchItems, createFile,
-    clipboard, copyItems, cutItems, pasteItems
+    clipboard, copyItems, cutItems, pasteItems, resolveLocalPath, findItem, saveFile
   } = useFileSystem(isGuest);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -60,8 +74,9 @@ export default function Home() {
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if typing in an input
-      if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
+      const target = e.target as HTMLElement;
+      // Ignore if typing in an input or contentEditable (like CodeMirror)
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
 
       if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
         e.preventDefault();
@@ -108,6 +123,17 @@ export default function Home() {
   const currentTrashItems = isGuest
     ? guestTree.filter(i => i.is_deleted)
     : trashItems;
+
+  // Bug Fix: Sync activeFile with guestTree to avoid stale content (persistence issue)
+  useEffect(() => {
+    if (isGuest && activeFile) {
+      const freshItem = guestTree.find(i => i.id === activeFile.id);
+      if (freshItem && freshItem !== activeFile) {
+        // Only update if reference changed (content updated)
+        setActiveFile(freshItem);
+      }
+    }
+  }, [guestTree, isGuest, activeFile]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -319,37 +345,21 @@ export default function Home() {
             onCreateFile={async (name, type) => {
               // Determine target folder
               let targetFolderId: string | null = null;
-              const selectedId = Array.from(selectedIds)[0]; // Use first selected
-              // We need to look up this item to know if it's a folder or file.
-              // But we don't have easy synchronous access to all items map here without SWR cache or searching tree.
-              // However, we can use `guestTree` if guest, or assume root if null.
-              // But specifically: "create the new file in the selected folder or the same folder as the selected file"
 
-              // For now, let's just pass null (root) if we can't easily find it, OR 
-              // we can try to look it up from `searchResults` if active, or `guestTree`.
-              // Or better: `lastFocusedItem` if valid?
-              // I'll use a hack helper if available, or just root for MVP if complicated.
-              // But wait, `Sidebar` has `onSelect` which updates `selectedIds`.
-              // `page.tsx` needs to know the item.
-              // SWR cache query is possible?
+              // Priority 1: Use selected item (if we have its context via lastFocusedItem)
+              // This is more reliable than reverse-looking up selectedIds from partial data
+              if (selectedIds.size > 0 && lastFocusedItem && selectedIds.has(lastFocusedItem.id)) {
+                targetFolderId = lastFocusedItem.kind === 'folder'
+                  ? lastFocusedItem.id
+                  : lastFocusedItem.folder_id;
+              }
+              // Priority 2: Use currently open file's folder
+              else if (activeFile) {
+                targetFolderId = activeFile.folder_id;
+              }
+              // Fallback: Root (null)
 
-              // Let's defer to root for now unless I find a cleaner way.
-              // Actually, `contextMenu.item` exists if right clicked, but this is a button click.
-              // `selectedIds` is a Set of strings.
-
-              // If I am in `page.tsx`, I don't have the full item list readily available as a flat map 
-              // to look up `selectedId.kind`.
-              // BUT, `mutate` works by path.
-
-              // Let's rely on a helper or just root for this iteration, 
-              // OR ask `Sidebar` to pass the `selectedItem`? No.
-
-              // Improving: I'll try to find the item in `guestTree` if guest.
-              // If Auth, it's harder.
-              // I will default to root (null) for now to keep it compiling, 
-              // and maybe adding a TODO to improve context.
-
-              await createFile(name, type, null);
+              await createFile(name, type, targetFolderId);
             }}
             onSearch={async (query) => {
               setSearchQuery(query);
@@ -375,7 +385,44 @@ export default function Home() {
       <div className="flex-grow flex flex-col min-w-0 bg-background overflow-hidden relative">
 
         <Header
-          title={activeFile ? activeFile.name : (isTrashView ? 'Trash Bin' : '')}
+          title={(() => {
+            if (!activeFile) return isTrashView ? 'Trash Bin' : '';
+
+
+            // Helper to construct full path
+            const getPath = (item: IExplorerItem): string => {
+              if (isGuest) {
+                let path = item.name;
+                let current = item;
+                const tree = guestTree;
+
+                if (tree.length > 0) {
+                  let parentId = current.kind === 'folder' ? current.parent_id : current.folder_id;
+                  while (parentId) {
+                    const parent = tree.find(i => i.id === parentId);
+                    if (parent) {
+                      path = `${parent.name} / ${path}`;
+                      parentId = parent.kind === 'folder' ? parent.parent_id : null;
+                    } else {
+                      break;
+                    }
+                  }
+                }
+                return path;
+              } else {
+                // Auth Mode: We can't synchronously calculate without the tree.
+                // We'll return the filename initially, but the component below should rely on SWR if possible.
+                // HOWEVER: This `getPath` is inside the render function.
+                // The cleaner way is to extract a sub-component or hook for the Title.
+                // For now, let's optimize: The Header title prop expects a string.
+                // We can't do async inside here.
+                // We should move this logic OUTSIDE or use a separate component for the Title that handles fetching.
+                return item.name; // Fallback for immediate render
+              }
+            };
+
+            return <BreadcrumbTitle item={activeFile} isGuest={isGuest} initialName={getPath(activeFile)} />;
+          })()}
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         >
@@ -392,7 +439,16 @@ export default function Home() {
 
         <div className="flex-grow overflow-y-auto relative bg-background">
           {activeFile ? (
-            <EditorContainer file={activeFile} onDownload={downloadFile} />
+            <EditorContainer
+              file={activeFile}
+              onDownload={downloadFile}
+              uploadFile={uploadFile}
+              createFolder={createFolder}
+              resolveLocalPath={resolveLocalPath}
+              findItem={findItem}
+              saveFile={saveFile}
+              isGuest={isGuest}
+            />
           ) : (
             /* Explorer / Grid View */
             <div className="px-8 py-6 h-full">

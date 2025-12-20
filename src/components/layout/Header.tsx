@@ -3,7 +3,7 @@ import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {
-    title: string;
+    title: React.ReactNode;
     isSidebarOpen: boolean;
     onToggleSidebar: () => void;
     children?: React.ReactNode;

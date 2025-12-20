@@ -9,7 +9,7 @@ export function useFileContent(file: ExplorerItem | null) {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!file || !url) {
+        if (!file) {
             setContent('');
             return;
         }
@@ -18,6 +18,12 @@ export function useFileContent(file: ExplorerItem | null) {
             setLoading(true);
             setError(null);
             try {
+                // If file has content in-memory (Guest Mode), use it
+                if ((file as any).content !== undefined) {
+                    setContent((file as any).content);
+                    return;
+                }
+
                 // Use proxy endpoint to avoid CORS issues with R2
                 const res = await fetch(`/api/files/${file!.id}/content`);
                 if (!res.ok) throw new Error('Failed to fetch content');

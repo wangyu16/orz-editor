@@ -7,15 +7,24 @@ import { PDFViewer } from '@/components/previewers/PDFViewer';
 import { ImageViewer } from '@/components/previewers/ImageViewer';
 import { MediaPlayer } from '@/components/previewers/MediaPlayer';
 
+import { MarkdownPreview } from '@/components/editors/MarkdownPreview';
+
 interface Props {
     item: ExplorerItem;
     category: string;
     content: string; // Only for text/code
     rawUrl: string;
+    settings?: any;
 }
 
-export function PublicFileRenderer({ item, category, content, rawUrl }: Props) {
-    if (category === 'text_code' || category === 'markdown_split' || category === 'json' || category === 'html') {
+export function PublicFileRenderer({ item, category, content, rawUrl, settings }: Props) {
+    if (category === 'markdown_split') {
+        return (
+            <MarkdownPreview content={content} settings={settings} fileId={item.id} />
+        );
+    }
+
+    if (category === 'text_code' || category === 'json' || category === 'html') {
         return (
             <CodeEditor
                 initialContent={content}

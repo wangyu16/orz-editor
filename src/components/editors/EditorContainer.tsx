@@ -8,18 +8,24 @@ import { MediaPlayer } from '@/components/previewers/MediaPlayer';
 import { PDFViewer } from '@/components/previewers/PDFViewer';
 import { CodeEditor } from './CodeEditor';
 import { MarkdownSplitEditor } from './MarkdownSplitEditor';
-import { useFileSystem } from '@/hooks/useFileSystem';
+import { CodeEditorContainer } from './CodeEditorContainer';
 import { getCategory } from '@/lib/fileUtils';
 
 interface EditorContainerProps {
     file: ExplorerItem;
     onDownload: (file: ExplorerItem) => void;
+    uploadFile?: (file: File, folderId: string | null) => Promise<any>;
+    createFolder?: (name: string, parentId: string | null) => Promise<any>;
+    resolveLocalPath?: (path: string, contextFileId: string) => Promise<string | undefined>;
+    findItem?: (name: string, parentId: string | null, kind: 'folder' | 'file') => Promise<any>;
+    saveFile?: (fileId: string, content: string) => Promise<any>;
+    isGuest?: boolean;
 }
 
-export function EditorContainer({ file, onDownload }: EditorContainerProps) {
+export function EditorContainer({ file, onDownload, uploadFile, createFolder, resolveLocalPath, findItem, saveFile, isGuest }: EditorContainerProps) {
     const { url, loading: urlLoading, error: urlError } = useFileUrl(file);
     const { content, loading: contentLoading, error: contentError } = useFileContent(file);
-    const { saveFile } = useFileSystem();
+    // Remove internal useFileSystem hook logic which caused the guest mode bug
 
     // State for tracking edits in CodeEditor mode (MarkdownSplitEditor manages its own)
     const [editorContent, setEditorContent] = React.useState<string | null>(null);
@@ -38,7 +44,10 @@ export function EditorContainer({ file, onDownload }: EditorContainerProps) {
     const error = urlError || (['text_code', 'markdown_split'].includes(category) && contentError);
 
     const handleSave = async (newContent: string) => {
-        if (!file) return;
+        if (!file || !saveFile) {
+            console.warn("Save functionality not available");
+            return;
+        }
         await saveFile(file.id, newContent);
     };
 
@@ -69,7 +78,19 @@ export function EditorContainer({ file, onDownload }: EditorContainerProps) {
     }
 
     if (category === 'markdown_split') {
-        return <MarkdownSplitEditor file={file} initialContent={content || ''} onSave={handleSave} />;
+        return (
+            <MarkdownSplitEditor
+                key={file.id}
+                file={file}
+                initialContent={content || ''}
+                onSave={handleSave}
+                onUpload={uploadFile}
+                onCreateFolder={createFolder}
+                onResolveImage={resolveLocalPath ? async (path) => resolveLocalPath(path, file.id) : undefined}
+                onFindItem={findItem}
+                isGuest={isGuest}
+            />
+        );
     }
 
 
@@ -84,27 +105,14 @@ export function EditorContainer({ file, onDownload }: EditorContainerProps) {
 
 
     if (category === 'text_code') {
-        const ext = file.name.split('.').pop()?.toLowerCase() || 'txt';
         return (
-            <div className="h-full w-full bg-zinc-950 flex flex-col">
-                <div className="h-10 bg-zinc-900 border-b border-zinc-800 flex items-center justify-end px-4">
-                    <button
-                        onClick={() => editorContent !== null && handleSave(editorContent)}
-                        className="flex items-center space-x-1.5 text-xs bg-accent hover:bg-accent/90 text-white px-3 py-1.5 rounded transition-colors"
-                    >
-                        {/* Import Save icon or use text */}
-                        <span>Save</span>
-                    </button>
-                </div>
-                <div className="flex-1 overflow-hidden">
-                    <CodeEditor
-                        initialContent={editorContent || ''}
-                        language={ext}
-                        onChange={(val) => setEditorContent(val)}
-                        onSave={() => editorContent !== null && handleSave(editorContent)}
-                    />
-                </div>
-            </div>
+            <CodeEditorContainer
+                key={file.id}
+                file={file}
+                initialContent={content || ''}
+                onSave={async (val) => handleSave(val)}
+                isGuest={isGuest}
+            />
         );
     }
 

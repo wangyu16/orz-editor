@@ -463,12 +463,14 @@ export function useFileSystem(isGuest: boolean = false) {
 
     const saveFile = async (fileId: string, content: string) => {
         if (isGuest) {
-            // Guest mode: Update local tree (mock content storage needed?)
-            // Currently we don't store file content in guest mode properly for persistence.
-            // Be explicit: "Guest mode doesn't support persistent content saving yet" or mock efficiently.
-            // For now, let's just log it or alert.
-            console.log('Guest save:', fileId, content);
-            // Ideally we'd update a 'content' field in the tree item.
+            // Guest mode: Update local tree with content
+            setGuestTree(prev => prev.map(item => {
+                if (item.id === fileId) {
+                    return { ...item, content };
+                }
+                return item;
+            }));
+            console.log('Guest saved in-memory:', fileId);
         } else {
             try {
                 const res = await fetch(`/api/files/${fileId}/content`, {
@@ -476,12 +478,81 @@ export function useFileSystem(isGuest: boolean = false) {
                     headers: { 'Content-Type': 'text/plain' },
                     body: content
                 });
-                if (!res.ok) throw new Error('Failed to save file');
+                if (!res.ok) throw new Error(`Failed to save file: ${res.status} ${res.statusText}`);
                 mutate(`/api/tree?parentId=null`); // Refresh to update size/time?
             } catch (error) {
                 console.error(error);
                 throw error;
             }
+        }
+    };
+
+    const resolveLocalPath = async (path: string, contextFileId: string): Promise<string | undefined> => {
+        if (!isGuest) return undefined;
+
+        const contextFile = guestTree.find(f => f.id === contextFileId);
+        if (!contextFile) return undefined;
+
+        let currentParentId = contextFile.kind === 'file' ? contextFile.folder_id : contextFile.parent_id;
+
+        const parts = path.split('/');
+        for (let i = 0; i < parts.length; i++) {
+            const part = decodeURIComponent(parts[i]); // Decode URI components
+            const isLast = i === parts.length - 1;
+
+            if (part === '.' || part === '') continue;
+            if (part === '..') {
+                if (!currentParentId) return undefined;
+                const parent = guestTree.find(f => f.id === currentParentId);
+                // Check kind before accessing parent_id
+                if (!parent || parent.kind === 'file') return undefined; // Should be a folder
+                currentParentId = parent.parent_id;
+                continue;
+            }
+
+            const child = guestTree.find(f => {
+                const pId = f.kind === 'folder' ? f.parent_id : f.folder_id;
+                return pId === currentParentId && f.name === part && !f.is_deleted;
+            });
+
+            if (!child) return undefined;
+
+            if (isLast) {
+                if (child.kind !== 'file') return undefined;
+                // Return Data URL (Base64) instead of Blob URL to avoid iframe origin issues
+                const file = (child as any)._file as File;
+                if (!file) return undefined;
+
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.readAsDataURL(file);
+                });
+            } else {
+                if (child.kind !== 'folder') return undefined;
+                currentParentId = child.id;
+            }
+        }
+        return undefined;
+    };
+
+    const findItem = async (name: string, parentId: string | null, kind: 'folder' | 'file') => {
+        if (isGuest) {
+            return guestTree.find(i => {
+                const pId = i.kind === 'folder' ? i.parent_id : i.folder_id;
+                return pId === parentId && i.name === name && i.kind === kind && !i.is_deleted;
+            });
+        } else {
+            // Server-side lookup
+            try {
+                const table = kind === 'folder' ? 'folders' : 'files';
+                const res = await fetch(`/api/search/lookup?name=${encodeURIComponent(name)}&parentId=${parentId || 'null'}&kind=${kind}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    return data; // Returns item or null
+                }
+            } catch (e) { console.error(e); }
+            return null;
         }
     };
 
@@ -502,6 +573,8 @@ export function useFileSystem(isGuest: boolean = false) {
         copyItems,
         cutItems,
         pasteItems,
-        saveFile
+        saveFile,
+        resolveLocalPath,
+        findItem
     };
 }

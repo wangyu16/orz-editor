@@ -157,3 +157,11 @@ You mentioned: "For a folder, the link points to a page listing all files... rec
 Should this be a simple valid HTML page (like an Apache directory listing)? html page with a list of files and folders, each with a download link.
 Or a JSON response for API consumption?
 (I will assume HTML Page for now based on "points to a page")
+
+## Editor featurs
+
+- All editors have auto saving, history version control functions. Enable ctrl + z to undo, ctrl + y to redo, ctrl + s to save, ctrl + c to copy, ctrl + v to paste. 
+- Important, each editor has its own parsing logic and layout assembly logic. The style theme settings for each editor is independent from other editors. 
+- Plain text editor should have auto saving, history version control, editor scroll when the content is too long, ctrl + z to undo, ctrl + y to redo, ctrl + s to save, ctrl + c to copy, ctrl + v to paste. 
+- exam, cv, and slide are expanded markdown formats, they are parsed using the markdown parser but with addtional rendering steps. Have the same auto saving, history version control, editor scroll when the content is too long, ctrl + z to undo, ctrl + y to redo, ctrl + s to save, ctrl + c to copy, ctrl + v to paste. However, the preview have its own page layout and internal styling. 
+- Each editor has a settings button to save layout and style settings. When click on it, provide a card to show all allowed settings. Users can select and save settings. The settings are saved in invisible folders. Each editor has its own dedicated invisible folder to save and load settings. The user can save a set of settings as default so all files of that type without specified settings will use this default settings. Or the user can save a set of settings with a name so it can be loaded. A file can use default settings or load a named set of settings. The preview of the file, exported version and shared rendered version all use the same rendering mechanism and settings. 

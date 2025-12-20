@@ -35,6 +35,50 @@ async function getFolderContents(folderId: string) {
     return [...(folders || []), ...(files || [])] as ExplorerItem[];
 }
 
+async function getOwnerSettings(userId: string) {
+    try {
+        // 1. Find .settings folder
+        const { data: rootSettings } = await supabaseAdmin.from('folders')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('name', '.settings')
+            .is('parent_id', null)
+            .single();
+        if (!rootSettings) return null;
+
+        // 2. Find markdown folder
+        const { data: mdFolder } = await supabaseAdmin.from('folders')
+            .select('id')
+            .eq('parent_id', rootSettings.id)
+            .eq('name', 'markdown')
+            .single();
+        if (!mdFolder) return null;
+
+        // 3. Find default.json file
+        const { data: file } = await supabaseAdmin.from('files')
+            .select('*')
+            .eq('folder_id', mdFolder.id)
+            .eq('name', 'default.json')
+            .single();
+        if (!file) return null;
+
+        // 4. Fetch content from R2
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const { s3Client, R2_BUCKET_NAME } = await import('@/lib/r2');
+        const command = new GetObjectCommand({
+            Bucket: R2_BUCKET_NAME,
+            Key: file.uuid_r2
+        });
+        const s3Item = await s3Client.send(command);
+        const json = await s3Item.Body?.transformToString();
+        if (json) {
+            const parsed = JSON.parse(json);
+            return parsed.theme;
+        }
+    } catch { return null; }
+    return null;
+}
+
 // Client Component Wrapper for CodeEditor (since it uses hooks/interactive)
 // We'll define it in a separate file or inline if simple? 
 // Next.js Server Components can't import Client Components directly if they aren't marked 'use client'.
@@ -126,6 +170,12 @@ export default async function PublicPage({ params }: { params: Promise<{ token: 
         }
     }
 
+    // Fetch owner settings (if markdown)
+    let settings = undefined;
+    if (category === 'markdown_split') {
+        settings = await getOwnerSettings(item.user_id);
+    }
+
     return (
         <div className="h-screen flex flex-col bg-zinc-950 text-white">
             <header className="h-14 border-b border-zinc-800 flex items-center justify-between px-4 bg-zinc-900">
@@ -141,7 +191,7 @@ export default async function PublicPage({ params }: { params: Promise<{ token: 
                 </div>
             </header>
             <div className="flex-1 overflow-hidden relative">
-                <PublicFileRenderer item={item} category={category} content={content} rawUrl={`/raw/${token}`} />
+                <PublicFileRenderer item={item} category={category} content={content} rawUrl={`/raw/${token}`} settings={settings} />
             </div>
         </div>
     );

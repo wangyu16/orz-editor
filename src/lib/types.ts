@@ -11,6 +11,14 @@ export interface Folder {
     kind: 'folder';
 }
 
+export interface FileVersion {
+    id: string;
+    file_id: string;
+    content: string;
+    created_at: string;
+    is_auto_save: boolean;
+}
+
 export interface FileMetadata {
     id: string;
     name: string;
@@ -22,8 +30,10 @@ export interface FileMetadata {
     is_deleted: boolean;
     public_link_expired_at: string | null;
     created_at: string;
-    updated_at: string;
+    updated_at: string; // Ensure this is present
     kind: 'file';
+    content?: string; // For Guest Mode in-memory storage or cache
+    versions?: FileVersion[]; // For Guest Mode
 }
 
 export type ExplorerItem = Folder | FileMetadata;

@@ -15,10 +15,16 @@ export function useFileUrl(file: ExplorerItem | null) {
 
         // Guest mode - (Currently mocks, so no real URL for now, return null)
         // If we implemented Blob storage for guest, we'd use URL.createObjectURL(file.blob)
-        if (typeof window !== 'undefined' && !document.cookie.includes('sb-')) { // Simple guest check or pass prop
-            // For now, Guest mode files are mock. 
-            // If file has a 'content' field in guestTree (not currently typed), we could handle text.
-            // But for binaries, we don't have them in Guest mode yet.
+        // Guest mode check (Better logic: check if file ID is not a UUID or check supabase session)
+        // Since we don't have easy synchronous access to session here, let's rely on valid "remote" IDs being UUIDs, 
+        // OR better: handle the 401 gracefully. 
+        // Actually, the issue is that in guest mode, we don't have a session so the API call fails immediately.
+        // We can just skip fetching if cookie 'sb-access-token' is missing, roughly.
+        // Or better: Just catch the error and do nothing.
+
+        // Guest Check:
+        const isGuest = typeof window !== 'undefined' && !document.cookie.includes('sb-');
+        if (isGuest) {
             setLoading(false);
             return;
         }
@@ -38,12 +44,22 @@ export function useFileUrl(file: ExplorerItem | null) {
 
                 if (!file) return;
                 const response = await fetch(`/api/files/${file!.id}/preview`);
+
+                if (response.status === 401) {
+                    // Stale session or guest with cookie -> fail silently
+                    setUrl(null);
+                    return;
+                }
+
                 if (!response.ok) throw new Error('Failed to get preview URL');
 
                 const data = await response.json();
                 setUrl(data.url);
             } catch (err: any) {
-                console.error(err);
+                // Silently ignore 401s if they slip through, log others
+                if (err.message !== 'Failed to get preview URL') {
+                    console.error(err);
+                }
                 setError(err.message);
             } finally {
                 setLoading(false);
