@@ -5,7 +5,7 @@ import { MarkdownPreview } from './MarkdownPreview';
 import { MarkdownSettingsModal } from './MarkdownSettingsModal';
 import { ThemeComposition } from '@/lib/markdown-api';
 import { SettingsAPI } from '@/lib/settings-api';
-import { Save, Columns, Eye, FileCode, Settings, Image as ImageIcon, Loader2, History } from 'lucide-react';
+import { Save, Columns, Eye, FileCode, Settings, Image as ImageIcon, Loader2, History, Download } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { EditorView } from '@codemirror/view';
 import { useFileVersions } from '@/hooks/useFileVersions';
@@ -244,6 +244,101 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
         }
     };
 
+    const handleExport = async () => {
+        try {
+            // 1. Compile Markdown
+            let html = await MarkdownAPI.parse(content, { enableMath: true });
+
+            // 2. Resolve Images (Best Effort)
+            const regex = /src="((?!http:\/\/|https:\/\/|\/|data:).+?)"/g;
+            if (html && (onResolveImage || !isGuest)) {
+                const matches = Array.from(html.matchAll(regex));
+                if (matches.length > 0) {
+                    const replacements = await Promise.all(matches.map(async (m) => {
+                        const original = m[0];
+                        const path = m[1];
+                        let resolved = undefined;
+                        if (onResolveImage) resolved = await onResolveImage(path);
+                        else if (file) resolved = `/api/files/${file.id}/resolve/${path}`;
+                        return { original, replacement: resolved ? `src="${resolved}"` : original };
+                    }));
+                    replacements.forEach(({ original, replacement }) => {
+                        html = html.replace(original, replacement);
+                    });
+                }
+            }
+
+            // 3. Generate CSS
+            const themeToLoad = settings || {
+                colors: 'dark-default',
+                fonts: 'modern',
+                sizing: 'default',
+                elements: 'rounded',
+                decorations: 'clean',
+                layout: 'default',
+                prism: 'tomorrow-night',
+                includeLayout: true
+            } as ThemeComposition; // Cast as we constructed a default
+            const css = await MarkdownAPI.composeTheme(themeToLoad);
+
+            // 4. Bundle HTML
+            const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${file.name}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    <style>
+        ${css}
+        /* Override Heading Colors to use the Theme's Accent/Decoration Color */
+        h1, h2, h3, h4, h5, h6 { color: var(--decoration-color, var(--text-color)); }
+        a { color: var(--link-color); text-decoration: none; }
+        a:hover { color: var(--link-hover); text-decoration: underline; }
+        body { margin: 0; padding: 0; background: var(--bg-color); color: var(--text-color); }
+        .markdown-preview { min-height: 100vh; }
+    </style>
+</head>
+<body>
+    <div class="markdown-preview line-numbers">
+        ${html}
+    </div>
+    <!-- Prism Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markdown.min.js"></script>
+    <script>
+        // Trigger Highlight
+        document.addEventListener('DOMContentLoaded', () => {
+             if (window.Prism) window.Prism.highlightAll();
+        });
+    </script>
+</body>
+</html>`;
+
+            // 5. Download
+            const blob = new Blob([fullHtml], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.name.endsWith('.md') ? file.name.replace('.md', '.html') : `${file.name}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+        } catch (e) {
+            console.error("Export failed", e);
+            alert("Export failed: " + (e as any).message);
+        }
+    };
+
     // ...
 
     return (
@@ -353,6 +448,14 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
                             </span>
                         )}
                     </div>
+                    <button
+                        onClick={handleExport}
+                        className="flex items-center space-x-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 rounded transition-colors mr-2"
+                        title="Export as HTML"
+                    >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Export</span>
+                    </button>
                     <button
                         onClick={handleManualSave}
                         className="flex items-center space-x-1.5 text-xs bg-accent hover:bg-accent/90 text-white px-3 py-1.5 rounded transition-colors"
