@@ -158,13 +158,7 @@ export default async function PublicPage({ params }: { params: Promise<{ token: 
 
             const command = new GetObjectCommand({
                 Bucket: R2_BUCKET_NAME,
-                import { ExplorerItem, FileMetadata } from '@/lib/types';
-
-                // ... lines 157-158
-                const command = new GetObjectCommand({
-                    Bucket: R2_BUCKET_NAME,
-                    Key: (item as FileMetadata).uuid_r2,
-                });
+                Key: (item as FileMetadata).uuid_r2,
             });
             const s3Item = await s3Client.send(command);
             content = await s3Item.Body?.transformToString() || '';
