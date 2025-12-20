@@ -111,7 +111,7 @@ export function EditorContainer({ file, onDownload, uploadFile, createFolder, re
                 file={file}
                 initialContent={content || ''}
                 onSave={async (val) => handleSave(val)}
-                isGuest={isGuest}
+                isGuest={!!isGuest}
             />
         );
     }
