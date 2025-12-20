@@ -355,7 +355,9 @@ export default function Home() {
               }
               // Priority 2: Use currently open file's folder
               else if (activeFile) {
-                targetFolderId = activeFile.folder_id;
+                targetFolderId = activeFile.kind === 'folder'
+                  ? activeFile.parent_id
+                  : activeFile.folder_id;
               }
               // Fallback: Root (null)
 
