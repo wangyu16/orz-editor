@@ -216,7 +216,7 @@ $E = mc^2$
                                 Cancel
                             </button>
                             <button
-                                onClick={() => { onApply(settings); onClose(); }}
+                                onClick={() => { onApply(settings, savedName); onClose(); }}
                                 className="bg-white text-black px-6 py-2 rounded font-semibold hover:bg-zinc-200 transition-colors"
                             >
                                 Apply Theme
