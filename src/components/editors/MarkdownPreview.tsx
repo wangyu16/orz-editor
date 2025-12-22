@@ -127,12 +127,12 @@ export function MarkdownPreview({ content, settings, fileId, resolveImage, onScr
     const dynamicStyles = `
         ${css}
         /* Override Heading Colors to use the Theme's Accent/Decoration Color */
-        h1, h2, h3, h4, h5, h6 {
+        /* h1, h2, h3, h4, h5, h6 {
             color: var(--decoration-color, var(--text-color));
-        }
+        } */
         /* Make links use the link color */
-        a { color: var(--link-color); text-decoration: none; }
-        a:hover { color: var(--link-hover); text-decoration: underline; }
+        /* a { color: var(--link-color); text-decoration: none; }
+        a:hover { color: var(--link-hover); text-decoration: underline; } */
     `;
 
     return (

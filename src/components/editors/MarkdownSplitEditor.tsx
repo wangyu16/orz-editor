@@ -296,11 +296,11 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
         ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
         ${css}
         /* Override Heading Colors to use the Theme's Accent/Decoration Color */
-        h1, h2, h3, h4, h5, h6 {
+        /* h1, h2, h3, h4, h5, h6 {
             color: var(--decoration-color, var(--text-color));
         }
         a { color: var(--link-color); text-decoration: none; }
-        a:hover { color: var(--link-hover); text-decoration: underline; }
+        a:hover { color: var(--link-hover); text-decoration: underline; } */
         /* Make links use the link color */
     </style>
 </head>
