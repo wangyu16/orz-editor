@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Plus, Upload, Trash2, Search, Settings, ArrowLeft, FolderPlus, FilePlus } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 import { FileTree } from './FileTree';
 import { ExplorerItem } from './ExplorerItem';
 import { ExplorerItem as IExplorerItem } from '@/lib/types';
@@ -64,7 +65,7 @@ export function Sidebar({
         <div className={cn("bg-sidebar border-r border-border flex flex-col pt-4 transition-all duration-300", className)}>
             <div className="px-4 mb-6 flex items-center justify-between">
                 <div className="flex items-center">
-                    <img src="/orz-logo.svg" alt="ORZ" className="h-8 mr-2" />
+                    <Logo className="h-8 w-auto mr-2" />
                     <span className="text-xl font-bold tracking-tight text-white/90">Editor</span>
                 </div>
             </div>

@@ -1,6 +1,28 @@
-<svg width="170" height="90" viewBox="0 0 170 90" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <style>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="170"
+   height="90"
+   viewBox="0 0 170 90"
+   version="1.1"
+   id="svg2"
+   sodipodi:docname="orz-logo-Indie.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview2"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1" />
+  <defs
+     id="defs2">
+    <style
+       id="style1">
       /* Importing Caesar Dressing for that ancient/primitive look */
       @import url('https://fonts.googleapis.com/css2?family=Indie+Flower&amp;display=swap');
       
@@ -13,21 +35,35 @@
         dominant-baseline: central; 
       }
     </style>
-    
-    <mask id="text-cutout-ancient">
-      <rect x="0" y="0" width="170" height="90" fill="white" />
-      
-      <text x="50%" y="50%" class="logo-text" fill="black">
-        o<tspan dx="-5">r</tspan><tspan dx="-10">z</tspan>
-      </text>
+    <mask
+       id="text-cutout-ancient">
+      <rect
+         x="0"
+         y="0"
+         width="170"
+         height="90"
+         fill="white"
+         id="rect1" />
+      <text
+         x="50%"
+         y="50%"
+         class="logo-text"
+         fill="black"
+         id="text2">
+        o<tspan
+   dx="-5"
+   id="tspan1">r</tspan><tspan
+   dx="-10"
+   id="tspan2">z</tspan></text>
     </mask>
   </defs>
-
-  <rect 
-    x="0" y="0" 
-    width="170" height="90" 
-    rx="34" 
-    fill="#96d969" 
-    mask="url(#text-cutout-ancient)" 
-  />
+  <rect
+     x="0"
+     y="0"
+     width="170"
+     height="90"
+     rx="34"
+     fill="#96d969"
+     mask="url(#text-cutout-ancient)"
+     id="rect2" />
 </svg>
