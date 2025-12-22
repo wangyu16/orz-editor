@@ -1,0 +1,32 @@
+<svg width="90" height="90" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      /* Importing Caesar Dressing for that ancient/primitive look */
+      
+      .logo-text {
+        font-family: 'Indie Flower', cursive;
+        /* Increased font size slightly as this font is naturally a bit smaller */
+        font-size: 125px; 
+        font-weight: bold;
+        text-anchor: middle;
+        dominant-baseline: central; 
+      }
+    </style>
+    
+    <mask id="text-cutout-ancient">
+      <rect x="0" y="0" width="90" height="90" fill="white" />
+      
+      <text x="50%" y="45%" class="logo-text" fill="black">
+        o
+      </text>
+    </mask>
+  </defs>
+
+  <rect 
+    x="0" y="0" 
+    width="90" height="90" 
+    rx="34" 
+    fill="#96d969" 
+    mask="url(#text-cutout-ancient)" 
+  />
+</svg>

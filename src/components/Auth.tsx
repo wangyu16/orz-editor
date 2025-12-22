@@ -49,7 +49,10 @@ export function Auth({ onGuest }: { onGuest: () => void }) {
         <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
             <div className="w-full max-w-md p-8 bg-sidebar rounded-2xl border border-border shadow-2xl space-y-6">
                 <div className="text-center">
-                    <h2 className="text-3xl font-bold text-white mb-2">ORZ Editor</h2>
+                    <div className="flex items-center justify-center mb-2">
+                        <img src="/orz-logo.svg" alt="ORZ" className="h-16" />
+                        <span className="text-3xl font-bold text-white ml-2">Editor</span>
+                    </div>
                     <p className="text-foreground/50 text-sm">Sign in to manage your files</p>
                 </div>
 
