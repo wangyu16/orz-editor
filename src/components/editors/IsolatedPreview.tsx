@@ -51,7 +51,22 @@ export function IsolatedPreview({ content, initialHead = '', styleContent = '', 
                         if (window.Prism) {
                              setTimeout(() => window.Prism.highlightAll(), 0);
                         }
-                        
+
+                        // Re-render Mermaid diagrams
+                        if (window.mermaid) {
+                            setTimeout(() => window.mermaid.run(), 0);
+                        }
+
+                        // Re-render SMILES structures
+                        if (window.SmilesDrawer) {
+                            setTimeout(() => SmilesDrawer.apply({}), 0);
+                        }
+
+                        // Re-init orz runtime (QR code interactions)
+                        if (window.OrzMarkdownRuntime) {
+                            setTimeout(() => window.OrzMarkdownRuntime.init(document.body), 0);
+                        }
+
                         window.scrollTo(scrollX, scrollY);
                     }
                     

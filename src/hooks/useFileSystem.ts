@@ -125,9 +125,14 @@ export function useFileSystem(isGuest: boolean = false) {
             return;
         }
         try {
-            await Promise.all(items.map(item => {
+            const results = await Promise.all(items.map(async item => {
                 const table = item.kind === 'folder' ? 'folders' : 'files';
-                return fetch(`/api/${table}/${item.id}`, { method: 'DELETE' });
+                const res = await fetch(`/api/${table}/${item.id}`, { method: 'DELETE' });
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    throw new Error(body.error || `Failed to delete ${item.name}`);
+                }
+                return res;
             }));
             const uniqueParents = Array.from(new Set(items.map(i => i.kind === 'folder' ? i.parent_id : i.folder_id)));
             uniqueParents.forEach(p => mutate(`/api/tree?parentId=${p}`));

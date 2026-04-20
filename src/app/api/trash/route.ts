@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 
+const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function GET(request: NextRequest) {
     try {
@@ -12,8 +17,8 @@ export async function GET(request: NextRequest) {
         }
 
         const [foldersResult, filesResult] = await Promise.all([
-            supabase.from('folders').select('*').eq('user_id', user.id).eq('is_deleted', true).order('name'),
-            supabase.from('files').select('*').eq('user_id', user.id).eq('is_deleted', true).order('name')
+            supabaseAdmin.from('folders').select('*').eq('user_id', user.id).eq('is_deleted', true).order('name'),
+            supabaseAdmin.from('files').select('*').eq('user_id', user.id).eq('is_deleted', true).order('name')
         ])
 
         if (foldersResult.error) throw foldersResult.error
