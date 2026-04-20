@@ -112,7 +112,7 @@ export function Sidebar({
                                         <div className="px-3 py-2 border-b border-border mb-1">
                                             <span className="text-[10px] font-bold uppercase text-foreground/40 tracking-wider">Create New File</span>
                                         </div>
-                                        {['txt', 'md', 'emd', 'cmd', 'smd'].map(type => (
+                                        {['txt', 'md'].map(type => (
                                             <button
                                                 key={type}
                                                 onClick={() => {
@@ -135,12 +135,7 @@ export function Sidebar({
                                             >
                                                 <span className="w-8 font-mono text-accent/70 text-[10px] text-right">.{type}</span>
                                                 <span className="font-medium">
-                                                    {type === 'txt' ? 'Text / Code' :
-                                                        type === 'md' ? 'Markdown' :
-                                                            type === 'emd' ? 'Exam' :
-                                                                type === 'cmd' ? 'CV' :
-                                                                    type === 'smd' ? 'Slides' :
-                                                                        type.toUpperCase() + ' File'}
+                                                    {type === 'txt' ? 'Text / Code' : 'Markdown'}
                                                 </span>
                                             </button>
                                         ))}

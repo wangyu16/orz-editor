@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 
+const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function PATCH(
     request: NextRequest,
@@ -64,8 +69,8 @@ export async function DELETE(
 
             if (error) throw error
         } else {
-            // Soft delete
-            const { error } = await supabase
+            // Soft delete — use admin client to bypass RLS restrictions on is_deleted updates
+            const { error } = await supabaseAdmin
                 .from('folders')
                 .update({ is_deleted: true })
                 .eq('id', id)

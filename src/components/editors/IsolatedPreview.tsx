@@ -30,6 +30,19 @@ export function IsolatedPreview({ content, initialHead = '', styleContent = '', 
                 let isProgrammaticScroll = false;
                 let scrollTimeout;
 
+                // Intercept anchor clicks so #hash links scroll within the iframe
+                // instead of navigating the iframe (which would clear srcDoc content)
+                document.addEventListener('click', (e) => {
+                    const a = e.target.closest('a');
+                    if (!a) return;
+                    const href = a.getAttribute('href');
+                    if (href && href.startsWith('#')) {
+                        e.preventDefault();
+                        const target = document.getElementById(href.slice(1));
+                        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+
                 window.addEventListener('message', (event) => {
                     const { type, body, styles, percent } = event.data;
                     
@@ -57,9 +70,18 @@ export function IsolatedPreview({ content, initialHead = '', styleContent = '', 
                             setTimeout(() => window.mermaid.run(), 0);
                         }
 
-                        // Re-render SMILES structures
+                        // Re-render SMILES structures with theme-aware colors
                         if (window.SmilesDrawer) {
-                            setTimeout(() => SmilesDrawer.apply({}), 0);
+                            setTimeout(() => {
+                                const bg = getComputedStyle(document.body).backgroundColor;
+                                const rgb = bg.match(/\d+/g) || [128, 128, 128];
+                                const luminance = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
+                                const smilesTheme = luminance < 0.5 ? 'dark' : 'light';
+                                document.querySelectorAll('canvas[data-smiles]').forEach(el => {
+                                    el.setAttribute('data-smiles-theme', smilesTheme);
+                                });
+                                SmilesDrawer.apply({});
+                            }, 100);
                         }
 
                         // Re-init orz runtime (QR code interactions)
