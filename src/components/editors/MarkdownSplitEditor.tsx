@@ -3,7 +3,7 @@ import { ExplorerItem } from '@/lib/types';
 import { CodeEditor } from './CodeEditor';
 import { MarkdownPreview } from './MarkdownPreview';
 import { MarkdownSettingsModal } from './MarkdownSettingsModal';
-import { MarkdownAPI, ThemeComposition } from '@/lib/markdown-api';
+import { MarkdownAPI } from '@/lib/markdown-api';
 import { SettingsAPI } from '@/lib/settings-api';
 import { Save, Columns, Eye, FileCode, Settings, Image as ImageIcon, Loader2, History, Download } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
@@ -33,7 +33,7 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
     // Combine isDirty logic into saveStatus maybe? kept simple for now
     const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
     const [isDragging, setIsDragging] = useState(false);
-    const [settings, setSettings] = useState<ThemeComposition | undefined>(undefined);
+    const [themeName, setThemeName] = useState<string | undefined>(undefined);
     const [showSettings, setShowSettings] = useState(false);
     const [editorView, setEditorView] = useState<EditorView | null>(null);
     const [uploadingImg, setUploadingImg] = useState(false);
@@ -70,20 +70,17 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
         const initSettings = async () => {
             try {
                 // 1. Check for specific association
-                const presetName = await SettingsAPI.getAssociation(file.id);
-                if (presetName) {
-                    const preset = await SettingsAPI.loadSettings(presetName);
-                    if (preset && mounted) {
-                        setSettings(preset.theme);
-                        setSettingsLoaded(true);
-                        return;
-                    }
+                const associated = await SettingsAPI.getAssociation(file.id);
+                if (associated && mounted) {
+                    setThemeName(associated);
+                    setSettingsLoaded(true);
+                    return;
                 }
 
-                // 2. Fallback to default
-                const defaultPreset = await SettingsAPI.loadSettings('default');
-                if (defaultPreset && mounted) {
-                    setSettings(defaultPreset.theme);
+                // 2. Fallback to user default theme
+                const defaultTheme = await SettingsAPI.getDefaultTheme();
+                if (defaultTheme && mounted) {
+                    setThemeName(defaultTheme);
                 }
             } catch (err) {
                 console.error("Failed to init settings", err);
@@ -106,12 +103,11 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const handleApplySettings = async (newSettings: ThemeComposition, presetName?: string) => {
-        setSettings(newSettings);
-        if (presetName && !isGuest) {
-            // Save association
+    const handleApplySettings = async (newThemeName: string) => {
+        setThemeName(newThemeName);
+        if (!isGuest) {
             try {
-                await SettingsAPI.saveAssociation(file.id, presetName);
+                await SettingsAPI.saveAssociation(file.id, newThemeName);
             } catch (e) {
                 console.error("Failed to save association", e);
             }
@@ -247,7 +243,7 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
     const handleExport = async () => {
         try {
             // 1. Compile Markdown
-            let html = await MarkdownAPI.parse(content, { enableMath: true });
+            let html = await MarkdownAPI.parse(content);
 
             // 2. Resolve Images (Best Effort)
             const regex = /src="((?!http:\/\/|https:\/\/|\/|data:).+?)"/g;
@@ -268,18 +264,8 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
                 }
             }
 
-            // 3. Generate CSS
-            const themeToLoad = settings || {
-                colors: 'dark-default',
-                fonts: 'modern',
-                sizing: 'default',
-                elements: 'rounded',
-                decorations: 'clean',
-                layout: 'default',
-                prism: 'tomorrow-night',
-                includeLayout: true
-            } as ThemeComposition; // Cast as we constructed a default
-            const css = await MarkdownAPI.composeTheme(themeToLoad);
+            // 3. Get Theme CSS
+            const css = await MarkdownAPI.getThemeCSS(themeName || 'dark-elegant-1');
 
             // 4. Bundle HTML
             const fullHtml = `<!DOCTYPE html>
@@ -290,25 +276,14 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
     <title>${file.name}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
     <style>
-        /* body { margin: 0; } */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
         ${css}
-        /* Override Heading Colors to use the Theme's Accent/Decoration Color */
-        /* h1, h2, h3, h4, h5, h6 {
-            color: var(--decoration-color, var(--text-color));
-        }
-        a { color: var(--link-color); text-decoration: none; }
-        a:hover { color: var(--link-hover); text-decoration: underline; } */
-        /* Make links use the link color */
     </style>
 </head>
 <body>
-    <div id="root">
-        ${html}
-    </div>
-    <!-- Prism Scripts -->
+    ${html}
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
@@ -319,9 +294,8 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markdown.min.js"></script>
     <script>
-        // Trigger Highlight
         document.addEventListener('DOMContentLoaded', () => {
-             if (window.Prism) window.Prism.highlightAll();
+            if (window.Prism) window.Prism.highlightAll();
         });
     </script>
 </body>
@@ -537,7 +511,7 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
                     ) : (
                         <MarkdownPreview
                             content={content}
-                            settings={settings}
+                            themeName={themeName}
                             fileId={file.id}
                             resolveImage={onResolveImage}
                             onScroll={handlePreviewScroll}
@@ -563,7 +537,8 @@ export function MarkdownSplitEditor({ file, initialContent, onSave, onUpload, on
 
             {showSettings && (
                 <MarkdownSettingsModal
-                    currentSettings={settings}
+                    currentTheme={themeName}
+                    fileId={file.id}
                     onClose={() => setShowSettings(false)}
                     onApply={handleApplySettings}
                 />

@@ -2,13 +2,10 @@ import React from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 import { notFound } from 'next/navigation';
-import { CodeEditor } from '@/components/editors/CodeEditor'; // We will need to Client Wrapper this if it's not "use client"
-import { PDFViewer } from '@/components/previewers/PDFViewer';
-import { ImageViewer } from '@/components/previewers/ImageViewer';
-import { MediaPlayer } from '@/components/previewers/MediaPlayer';
 import { ExplorerItem, FileMetadata } from '@/lib/types';
 import { FileIcon, Folder, Download } from 'lucide-react';
 import { getCategory } from '@/lib/fileUtils';
+import { parseMarkdown, getThemeCSS, ORZ_THEMES } from '@/lib/orz-parser';
 
 // Service Role Client for public access lookup
 const supabaseAdmin = createClient(
@@ -18,11 +15,11 @@ const supabaseAdmin = createClient(
 
 async function getItemByToken(token: string) {
     // 1. Try File
-    let { data: file } = await supabaseAdmin.from('files').select('*').eq('share_token', token).single();
+    const { data: file } = await supabaseAdmin.from('files').select('*').eq('share_token', token).single();
     if (file) return { item: file as ExplorerItem, type: 'file' };
 
     // 2. Try Folder
-    let { data: folder } = await supabaseAdmin.from('folders').select('*').eq('share_token', token).single();
+    const { data: folder } = await supabaseAdmin.from('folders').select('*').eq('share_token', token).single();
     if (folder) return { item: folder as ExplorerItem, type: 'folder' };
 
     return null;
@@ -35,13 +32,13 @@ async function getFolderContents(folderId: string) {
     return [...(folders || []), ...(files || [])] as ExplorerItem[];
 }
 
-async function getOwnerSettings(userId: string, fileId: string) {
-    console.log(`[PublicView] Getting settings for user ${userId}, file ${fileId}`);
+async function getOwnerTheme(userId: string, fileId: string): Promise<string> {
+    const fallback = 'dark-elegant-1';
     try {
         const { GetObjectCommand } = await import('@aws-sdk/client-s3');
         const { s3Client, R2_BUCKET_NAME } = await import('@/lib/r2');
 
-        // 1. Find .settings folder
+        // Find .settings folder
         const { data: rootSettings } = await supabaseAdmin.from('folders')
             .select('id')
             .eq('user_id', userId)
@@ -50,106 +47,45 @@ async function getOwnerSettings(userId: string, fileId: string) {
             .eq('is_deleted', false)
             .single();
 
-        if (!rootSettings) {
-            console.log('[PublicView] .settings folder not found');
-            return null;
-        }
+        if (!rootSettings) return fallback;
 
-        // 2. Find markdown folder
-        const { data: mdFolder } = await supabaseAdmin.from('folders')
-            .select('id')
-            .eq('parent_id', rootSettings.id)
-            .eq('name', 'markdown')
-            .eq('is_deleted', false)
-            .single();
-
-        if (!mdFolder) {
-            console.log('[PublicView] markdown settings folder not found');
-            return null;
-        }
-
-        // Helper to fetch JSON from R2 via Supabase File record
-        const loadJsonFile = async (fileName: string) => {
+        const readJsonFile = async (fileName: string): Promise<Record<string, string> | null> => {
             const { data: file } = await supabaseAdmin.from('files')
                 .select('*')
-                .eq('folder_id', mdFolder.id)
+                .eq('folder_id', rootSettings.id)
                 .eq('name', fileName)
                 .eq('is_deleted', false)
                 .single();
-
-            if (!file) {
-                console.log(`[PublicView] Settings file ${fileName} not found`);
-                return null;
-            }
-
-            const command = new GetObjectCommand({
-                Bucket: R2_BUCKET_NAME,
-                Key: file.uuid_r2
-            });
+            if (!file) return null;
+            const command = new GetObjectCommand({ Bucket: R2_BUCKET_NAME, Key: file.uuid_r2 });
             const s3Item = await s3Client.send(command);
             const str = await s3Item.Body?.transformToString();
             return str ? JSON.parse(str) : null;
         };
 
-        // 3. Try associations.json
-        let presetName = 'default';
+        // 1. Check associations.json for file-specific theme
         try {
-            const { data: assocFile } = await supabaseAdmin.from('files')
-                .select('*')
-                .eq('folder_id', rootSettings.id)
-                .eq('name', 'associations.json')
-                .eq('is_deleted', false)
-                .single();
-
-            if (assocFile) {
-                const command = new GetObjectCommand({
-                    Bucket: R2_BUCKET_NAME,
-                    Key: assocFile.uuid_r2
-                });
-                const s3Item = await s3Client.send(command);
-                const str = await s3Item.Body?.transformToString();
-                const associations = str ? JSON.parse(str) : {};
-                console.log('[PublicView] Associations loaded:', associations);
-
-                if (associations[fileId]) {
-                    presetName = associations[fileId];
-                    console.log(`[PublicView] Found association for ${fileId}: ${presetName}`);
-                } else {
-                    console.log(`[PublicView] No association found for ${fileId}`);
-                }
-            } else {
-                console.log('[PublicView] associations.json not found');
+            const associations = await readJsonFile('associations.json');
+            if (associations && associations[fileId]) {
+                const theme = associations[fileId];
+                if ((ORZ_THEMES as readonly string[]).includes(theme)) return theme;
             }
-        } catch (e) {
-            console.error('[PublicView] Error reading associations:', e);
-        }
+        } catch { /* ignore */ }
 
-        // 4. Load the preset (default or associated)
-        const targetFile = presetName.endsWith('.json') ? presetName : `${presetName}.json`;
-        console.log(`[PublicView] Loading preset file: ${targetFile}`);
-
-        const settings = await loadJsonFile(targetFile);
-        if (settings && settings.theme) return settings.theme;
-
-        // Fallback if specific preset failed but default might exist (if we tried a custom one first)
-        if (presetName !== 'default') {
-            console.log('[PublicView] Falling back to default.json');
-            const def = await loadJsonFile('default.json');
-            return def?.theme;
-        }
+        // 2. Fall back to user-prefs.json default theme
+        try {
+            const prefs = await readJsonFile('user-prefs.json');
+            if (prefs && prefs['defaultTheme']) {
+                const theme = prefs['defaultTheme'];
+                if ((ORZ_THEMES as readonly string[]).includes(theme)) return theme;
+            }
+        } catch { /* ignore */ }
 
     } catch (err) {
-        console.error('[PublicView] Critical error in getOwnerSettings:', err);
-        return null;
+        console.error('[PublicView] Error in getOwnerTheme:', err);
     }
-    return null;
+    return fallback;
 }
-
-// Client Component Wrapper for CodeEditor (since it uses hooks/interactive)
-// We'll define it in a separate file or inline if simple? 
-// Next.js Server Components can't import Client Components directly if they aren't marked 'use client'.
-// `CodeEditor` likely isn't marked 'use client' yet explicitly? 
-// Let's assume we need to handle "use client" boundary.
 
 export default async function PublicPage({ params }: { params: Promise<{ token: string }> }) {
     const { token } = await params;
@@ -193,89 +129,32 @@ export default async function PublicPage({ params }: { params: Promise<{ token: 
     }
 
     // It's a file
-    // We need to fetch content if it's text/code
     const category = getCategory(item.name);
     let content = '';
 
-    // Construct URLs
-    // Using the raw route as the source for the viewer!
-    // But we need absolute URL for server side fetch? Or relative?
-    // In Server Component, fetch needs absolute. 
-    // Actually, we can use `supabaseAdmin` to get signed URL or just use the `/raw` endpoint.
-    // However, for Text content, we want to server-render it if possible or fetch it in client.
-    // Let's fetch it here on server to pass to Editor.
-
     if (category === 'text_code' || category === 'markdown_split') {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/why-use-functions-when-we-have-api?`, {
-                // Just kidding. We need to fetch from R2.
-                // We can reuse the logic from `raw` route or just call it?
-                // Calling localhost API from Server Component is flaky in Vercel/Next sometimes (needs full URL).
-                // Better to use the S3 client directly.
-            });
-            // ... Copy-paste S3 fetch logic logic?
-            // Easier: Just fetch the public raw URL if we can't share logic?
-            // But Authentication? Raw URL is public!
-            // We need the absolute URL. `https://...?`
-
-            // Let's use the S3 client directly like in `raw` route.
             const { GetObjectCommand } = await import('@aws-sdk/client-s3');
             const { s3Client, R2_BUCKET_NAME } = await import('@/lib/r2');
-
             const command = new GetObjectCommand({
                 Bucket: R2_BUCKET_NAME,
                 Key: (item as FileMetadata).uuid_r2,
             });
             const s3Item = await s3Client.send(command);
             content = await s3Item.Body?.transformToString() || '';
-
         } catch (e) {
             console.error("Failed to fetch content", e);
             content = "Error loading content.";
         }
     }
 
-    // Fetch owner settings (if markdown)
-    let settings = undefined;
-    let precompiledHtml = undefined;
-    let precompiledCss = undefined;
+    let precompiledHtml: string | undefined;
+    let precompiledCss: string | undefined;
 
     if (category === 'markdown_split') {
-        settings = await getOwnerSettings(item.user_id, item.id);
-
-        // Server-Side Pre-compilation
-        // 1. Parse Markdown
-        // We need to import the API dynamically or ensure it's available.
-        // MarkdownAPI in lib is standard TS, should work if fetch is polyfilled (Next.js 13+ has native fetch).
-        const { MarkdownAPI } = await import('@/lib/markdown-api');
-
-        precompiledHtml = await MarkdownAPI.parse(content, { enableMath: true });
-
-        // 2. Resolve Images for Shared View
-        // Replace src="UUID" with /raw/UUID if possible?
-        // Or leave as is? The MarkdownPreview logic handles parsing. 
-        // But IsolatedPreview won't have the parsing logic.
-        // So we strictly need to resolve images HERE on server or inject a resolver script.
-        // Server side resolution is best:
-        // Replace relative paths with /api/files/[id]/resolve/... OR 
-        // Since we are public, we likely need a public resolution endpoint?
-        // /raw/TOKEN is for the FILE itself.
-        // Images linked in markdown need to be resolveable.
-        // For now, let's assume standard resolution or keep as is (browser might fail to load relative images without logic).
-        // Let's defer image resolution for a moment and focus on styles, as that is the user complaint.
-
-        // 3. Compose Theme
-        const themeToLoad = settings || {
-            colors: 'dark-default',
-            fonts: 'modern',
-            sizing: 'default',
-            elements: 'rounded',
-            decorations: 'clean',
-            layout: 'default',
-            prism: 'tomorrow-night',
-            includeLayout: true
-        };
-        precompiledCss = await MarkdownAPI.composeTheme(themeToLoad);
+        const themeName = await getOwnerTheme(item.user_id, item.id);
+        precompiledHtml = parseMarkdown(content);
+        precompiledCss = getThemeCSS(themeName);
     }
 
     return (
@@ -298,7 +177,6 @@ export default async function PublicPage({ params }: { params: Promise<{ token: 
                     category={category}
                     content={content}
                     rawUrl={`/raw/${token}`}
-                    settings={settings}
                     precompiledHtml={precompiledHtml}
                     precompiledCss={precompiledCss}
                 />

@@ -1,60 +1,30 @@
 
-const PARSER_URL = 'https://mdparser-cf.yxw8611.workers.dev';
-const THEMER_URL = 'https://theme-forger.yxw8611.workers.dev';
+export const ORZ_THEMES = [
+    'dark-elegant-1',
+    'dark-elegant-2',
+    'light-academic-1',
+    'light-academic-2',
+    'light-neat-1',
+    'light-neat-2',
+    'light-playful-1',
+    'light-playful-2',
+    'beige-decent-1',
+    'beige-decent-2',
+] as const;
 
-export interface ParserOptions {
-    enableMath?: boolean;
-    enablePlugins?: boolean;
-}
-
-export interface ParseResult {
-    html: string;
-    processingTime?: string;
-}
-
-export interface ThemeOptions {
-    colors: string[];
-    fonts: string[];
-    sizing: string[];
-    elements: string[];
-    decorations: string[];
-    layout: string[];
-    prism: string[];
-}
-
-export interface ThemeComposition {
-    colors: string;
-    fonts: string;
-    sizing: string;
-    elements: string;
-    decorations: string;
-    layout: string;
-    prism: string;
-    includeLayout?: boolean;
-}
+export type OrzTheme = typeof ORZ_THEMES[number];
 
 export const MarkdownAPI = {
-    async parse(markdown: string, options: ParserOptions = {}): Promise<string> {
+    async parse(markdown: string): Promise<string> {
         if (!markdown || !markdown.trim()) return '';
         try {
-            // Merge defaults
-            const finalOptions = {
-                enableMath: true,
-                enablePlugins: true,
-                ...options
-            };
-            // Force math to be true as per requirement
-            finalOptions.enableMath = true;
-
-            const res = await fetch(`${PARSER_URL}/parse`, {
+            const res = await fetch('/api/markdown/parse', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ markdown: markdown || '', options: finalOptions }),
+                body: JSON.stringify({ markdown }),
             });
-
             if (!res.ok) throw new Error('Failed to parse markdown');
-
-            const data = await res.json() as ParseResult;
+            const data = await res.json() as { html: string };
             return data.html;
         } catch (error) {
             console.error('MarkdownAPI Parse Error:', error);
@@ -62,31 +32,14 @@ export const MarkdownAPI = {
         }
     },
 
-    async getThemeOptions(): Promise<ThemeOptions> {
+    async getThemeCSS(name: string): Promise<string> {
+        const safeName = (ORZ_THEMES as readonly string[]).includes(name) ? name : 'dark-elegant-1';
         try {
-            const res = await fetch(`${THEMER_URL}/api/options`);
-            if (!res.ok) throw new Error('Failed to fetch theme options');
-            return await res.json() as ThemeOptions;
-        } catch (error) {
-            console.error('MarkdownAPI Theme Options Error:', error);
-            return {
-                colors: [], fonts: [], sizing: [], elements: [], decorations: [], layout: [], prism: []
-            };
-        }
-    },
-
-    async composeTheme(composition: ThemeComposition): Promise<string> {
-        try {
-            const res = await fetch(`${THEMER_URL}/api/compose`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(composition),
-            });
-
-            if (!res.ok) throw new Error('Failed to compose theme');
+            const res = await fetch(`/api/markdown/theme/${safeName}`);
+            if (!res.ok) throw new Error('Failed to load theme CSS');
             return await res.text();
         } catch (error) {
-            console.error('MarkdownAPI Compose Theme Error:', error);
+            console.error('MarkdownAPI getThemeCSS Error:', error);
             return '';
         }
     }

@@ -1,31 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
-import { MarkdownAPI, ThemeComposition } from '@/lib/markdown-api';
+import { MarkdownAPI } from '@/lib/markdown-api';
 import { IsolatedPreview } from './IsolatedPreview';
 import { Loader2 } from 'lucide-react';
 
 interface MarkdownPreviewProps {
     content: string;
-    settings?: ThemeComposition;
+    themeName?: string;
     fileId?: string;
     resolveImage?: (path: string) => string | undefined | Promise<string | undefined>;
     onScroll?: (percentage: number) => void;
     scrollPercentage?: number | null;
 }
 
-// ... (DEFAULT_THEME remains same)
-const DEFAULT_THEME: ThemeComposition = {
-    colors: 'dark-default',
-    fonts: 'modern',
-    sizing: 'default',
-    elements: 'rounded',
-    decorations: 'clean',
-    layout: 'default',
-    prism: 'tomorrow-night',
-    includeLayout: true
-};
+const DEFAULT_THEME = 'dark-elegant-1';
 
-export function MarkdownPreview({ content, settings, fileId, resolveImage, onScroll, scrollPercentage }: MarkdownPreviewProps) {
+export function MarkdownPreview({ content, themeName, fileId, resolveImage, onScroll, scrollPercentage }: MarkdownPreviewProps) {
     const [html, setHtml] = useState<string>('');
     const [css, setCss] = useState<string>('');
     const [loading, setLoading] = useState(true);
@@ -35,49 +25,39 @@ export function MarkdownPreview({ content, settings, fileId, resolveImage, onScr
         let mounted = true;
         const parse = async () => {
             try {
-                const result = await MarkdownAPI.parse(content, { enableMath: true });
-
-                let finalHtml = result;
+                let result = await MarkdownAPI.parse(content);
 
                 if (result) {
-                    // Find all relative source attributes
+                    // Find all relative source attributes (not http/https/absolute/data URIs)
                     const regex = /src="((?!http:\/\/|https:\/\/|\/|data:).+?)"/g;
 
                     if (resolveImage) {
-                        // Custom resolution (Guest Mode)
-                        // We need to replace async, so we gather matches first
                         const matches = Array.from(result.matchAll(regex));
-
                         if (matches.length > 0) {
-                            // Replace one by one or create a map
-                            // Since replace doesn't support async, we do it in two passes
                             const replacements = await Promise.all(matches.map(async (m) => {
-                                const original = m[0]; // src="path"
-                                const path = m[1];     // path
+                                const original = m[0];
+                                const path = m[1];
                                 const resolved = await resolveImage(path);
                                 return { original, replacement: resolved ? `src="${resolved}"` : original };
                             }));
-
                             replacements.forEach(({ original, replacement }) => {
-                                finalHtml = finalHtml.replace(original, replacement);
+                                result = result.replace(original, replacement);
                             });
                         }
                     } else if (fileId) {
-                        // Standard API resolution (Auth Mode)
-                        finalHtml = result.replace(
+                        result = result.replace(
                             regex,
                             `src="/api/files/${fileId}/resolve/$1"`
                         );
                     }
                 }
 
-                if (mounted) setHtml(finalHtml);
+                if (mounted) setHtml(result);
             } catch (err) {
                 console.error('Parse error:', err);
             }
         };
 
-        // Debounce parse
         const timer = setTimeout(parse, 800);
         return () => {
             mounted = false;
@@ -89,12 +69,8 @@ export function MarkdownPreview({ content, settings, fileId, resolveImage, onScr
     useEffect(() => {
         let mounted = true;
         const loadTheme = async () => {
-            // Only set loading true if it's the initial load or a drastic change?
-            // Actually, CSS fetching is fast. 
-            const themeToLoad = settings || DEFAULT_THEME;
-
             try {
-                const generatedCss = await MarkdownAPI.composeTheme(themeToLoad);
+                const generatedCss = await MarkdownAPI.getThemeCSS(themeName || DEFAULT_THEME);
                 if (mounted) {
                     setCss(generatedCss);
                     setLoading(false);
@@ -107,13 +83,11 @@ export function MarkdownPreview({ content, settings, fileId, resolveImage, onScr
 
         loadTheme();
         return () => { mounted = false; };
-    }, [settings]);
+    }, [themeName]);
 
     const staticHead = `
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
-        <!-- Prism Core -->
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
-        <!-- Prism Languages -->
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
@@ -122,17 +96,6 @@ export function MarkdownPreview({ content, settings, fileId, resolveImage, onScr
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markdown.min.js"></script>
-    `;
-
-    const dynamicStyles = `
-        ${css}
-        /* Override Heading Colors to use the Theme's Accent/Decoration Color */
-        /* h1, h2, h3, h4, h5, h6 {
-            color: var(--decoration-color, var(--text-color));
-        } */
-        /* Make links use the link color */
-        /* a { color: var(--link-color); text-decoration: none; }
-        a:hover { color: var(--link-hover); text-decoration: underline; } */
     `;
 
     return (
@@ -145,7 +108,7 @@ export function MarkdownPreview({ content, settings, fileId, resolveImage, onScr
             <IsolatedPreview
                 content={html || '<div class="p-4 text-zinc-500">Parsing...</div>'}
                 initialHead={staticHead}
-                styleContent={dynamicStyles}
+                styleContent={css}
                 onScroll={onScroll}
                 scrollPercentage={scrollPercentage}
             />

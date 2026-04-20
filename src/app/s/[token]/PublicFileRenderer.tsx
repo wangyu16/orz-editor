@@ -15,12 +15,11 @@ interface Props {
     category: string;
     content: string; // Only for text/code
     rawUrl: string;
-    settings?: any;
     precompiledHtml?: string;
     precompiledCss?: string;
 }
 
-export function PublicFileRenderer({ item, category, content, rawUrl, settings, precompiledHtml, precompiledCss }: Props) {
+export function PublicFileRenderer({ item, category, content, rawUrl, precompiledHtml, precompiledCss }: Props) {
     if (category === 'markdown_split') {
         if (precompiledHtml && precompiledCss) {
             const staticHead = `
@@ -35,29 +34,18 @@ export function PublicFileRenderer({ item, category, content, rawUrl, settings, 
                 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
                 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markdown.min.js"></script>
             `;
-            const dynamicStyles = `
-                ${precompiledCss}
-                h1, h2, h3, h4, h5, h6 { color: var(--decoration-color, var(--text-color)); }
-                a { color: var(--link-color); text-decoration: none; }
-                a:hover { color: var(--link-hover); text-decoration: underline; }
-                body { margin: 0; }
-                ::-webkit-scrollbar { width: 8px; height: 8px; }
-                ::-webkit-scrollbar-track { background: transparent; }
-                ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
-            `;
-
             return (
-                <div className="h-full w-full bg-zinc-950">
+                <div className="h-full w-full">
                     <IsolatedPreview
                         content={precompiledHtml}
                         initialHead={staticHead}
-                        styleContent={dynamicStyles}
+                        styleContent={precompiledCss}
                     />
                 </div>
             );
         }
         return (
-            <MarkdownPreview content={content} settings={settings} fileId={item.id} />
+            <MarkdownPreview content={content} fileId={item.id} />
         );
     }
 
@@ -86,3 +74,4 @@ export function PublicFileRenderer({ item, category, content, rawUrl, settings, 
         </div>
     );
 }
+

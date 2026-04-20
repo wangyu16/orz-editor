@@ -10,7 +10,7 @@ export const getCategory = (name: string, type?: string): 'image' | 'video' | 'a
     if (fileType === 'application/pdf' || ext === 'pdf') return 'pdf';
 
     // Text / Code
-    if (['md', 'emd', 'cmd', 'smd'].includes(ext)) return 'markdown_split';
+    if (ext === 'md') return 'markdown_split';
     if (fileType.startsWith('text/') || ['txt', 'py', 'json', 'js', 'jsx', 'ts', 'tsx', 'html', 'css', 'xml'].includes(ext)) return 'text_code';
 
     return 'unknown';
