@@ -42,7 +42,8 @@ export function ContextMenu({ x, y, onClose, options }: ContextMenuProps) {
     return (
         <div
             ref={menuRef}
-            className="fixed z-50 w-56 bg-sidebar/95 backdrop-blur-md border border-border shadow-2xl rounded-xl py-1.5 animate-in fade-in zoom-in-95"
+            role="menu"
+            className="app-panel fixed z-50 w-60 overflow-hidden rounded-2xl py-1.5 animate-in fade-in zoom-in-95"
             style={{ left: x, top: y }}
         >
             {options.map((option, index) => (
@@ -55,14 +56,14 @@ export function ContextMenu({ x, y, onClose, options }: ContextMenuProps) {
                     }}
                     disabled={option.disabled}
                     className={cn(
-                        "w-full flex items-center px-3 py-2 text-sm transition-colors",
+                        "flex min-h-11 w-full items-center gap-3 px-3 py-2 text-sm transition-colors",
                         option.destructive
-                            ? "text-red-400 hover:bg-red-500/10"
-                            : "text-foreground/80 hover:bg-hover hover:text-white",
+                            ? "text-[color:var(--danger)] hover:bg-[var(--danger-soft)]"
+                            : "text-foreground/80 hover:bg-[var(--hover)] hover:text-foreground",
                         option.disabled && "opacity-50 cursor-not-allowed"
                     )}
                 >
-                    <option.icon className="w-4 h-4 mr-3 opacity-70" />
+                    <option.icon className="h-4 w-4 opacity-70" />
                     <span className="flex-grow text-left">{option.label}</span>
                 </button>
             ))}

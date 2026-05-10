@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Upload, Trash2, Search, Settings, ArrowLeft, FolderPlus, FilePlus } from 'lucide-react';
+import { Upload, Trash2, Search, ArrowLeft, FolderPlus, FilePlus } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { FileTree } from './FileTree';
 import { ExplorerItem } from './ExplorerItem';
@@ -62,19 +62,34 @@ export function Sidebar({
     const [showFileMenu, setShowFileMenu] = useState(false);
 
     return (
-        <div className={cn("bg-sidebar border-r border-border flex flex-col pt-4 transition-all duration-300", className)}>
-            <div className="px-4 mb-6 flex items-center justify-between">
-                <div className="flex items-center">
-                    <Logo className="h-8 w-auto mr-2" />
-                    <span className="text-xl font-bold tracking-tight text-white/90">Editor</span>
+        <div className={cn("flex flex-col bg-sidebar pt-4 transition-all duration-300", className)}>
+            <div className="px-4 pb-5">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-border bg-[var(--surface-raised)]">
+                            <Logo className="h-7 w-auto" />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-foreground/45">
+                                {isGuest ? 'Local session' : 'Cloud workspace'}
+                            </p>
+                            <h2 className="truncate text-base font-semibold text-foreground">ORZ Editor</h2>
+                        </div>
+                    </div>
+
+                    <span className="app-badge shrink-0">{isGuest ? 'Guest' : 'Signed in'}</span>
                 </div>
+
+                <p className="mt-4 text-sm leading-relaxed text-foreground/62">
+                    Markdown, code, and media previews collected into one focused editing workspace.
+                </p>
             </div>
 
-            <div className="px-4 mb-4 space-y-2">
+            <div className="border-y border-border/70 px-4 py-4">
                 {isTrashView ? (
                     <button
                         onClick={onToggleTrash}
-                        className="w-full flex items-center justify-center space-x-2 py-2 bg-hover hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-all"
+                        className="app-button-secondary w-full"
                     >
                         <ArrowLeft className="w-4 h-4" />
                         <span>Back to Explorer</span>
@@ -87,78 +102,106 @@ export function Sidebar({
                                 onClick={() => setShowFileMenu(false)}
                             />
                         )}
-                        <div className="flex items-center space-x-2">
-                            <button
-                                onClick={onNewFolder}
-                                className="flex-1 flex items-center justify-center py-2 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 rounded-md transition-all"
-                                title="New Folder"
-                            >
-                                <FolderPlus className="w-4 h-4" />
-                            </button>
-                            <div className="relative flex-1">
-                                <button
-                                    onClick={() => setShowFileMenu(!showFileMenu)}
-                                    className={cn(
-                                        "w-full flex items-center justify-center py-2 bg-accent hover:bg-accent/90 text-white rounded-md transition-all",
-                                        showFileMenu && "bg-accent/90 ring-2 ring-accent/20"
-                                    )}
-                                    title="New File"
-                                >
-                                    <FilePlus className="w-4 h-4" />
-                                </button>
-                                {/* Click-triggered dropdown */}
-                                {showFileMenu && (
-                                    <div className="absolute top-full left-0 mt-2 w-48 bg-popover border border-border rounded-lg shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-                                        <div className="px-3 py-2 border-b border-border mb-1">
-                                            <span className="text-[10px] font-bold uppercase text-foreground/40 tracking-wider">Create New File</span>
-                                        </div>
-                                        {['txt', 'md'].map(type => (
-                                            <button
-                                                key={type}
-                                                onClick={() => {
-                                                    const promptMsg = type === 'txt'
-                                                        ? 'Enter filename (e.g. notes.txt or script.py):'
-                                                        : `Enter filename for .${type} file:`;
-                                                    const name = prompt(promptMsg);
-                                                    if (name) {
-                                                        if (type === 'txt') {
-                                                            const parts = name.split('.');
-                                                            const ext = parts.length > 1 ? parts.pop() : 'txt';
-                                                            onCreateFile(name, ext || 'txt');
-                                                        } else {
-                                                            onCreateFile(name, type);
-                                                        }
-                                                        setShowFileMenu(false);
-                                                    }
-                                                }}
-                                                className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 hover:text-accent transition-colors flex items-center space-x-2 text-foreground"
-                                            >
-                                                <span className="w-8 font-mono text-accent/70 text-[10px] text-right">.{type}</span>
-                                                <span className="font-medium">
-                                                    {type === 'txt' ? 'Text / Code' : 'Markdown'}
-                                                </span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
+
+                        <div className="mb-4">
+                            <div className="mb-2 flex items-center justify-between">
+                                <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-foreground/42">
+                                    Quick actions
+                                </span>
                             </div>
-                            <button
-                                onClick={onUpload}
-                                className="flex-1 flex items-center justify-center py-2 bg-hover hover:bg-white/10 text-foreground/70 hover:text-white rounded-md transition-all"
-                                title="Upload File"
-                            >
-                                <Upload className="w-4 h-4" />
-                            </button>
+
+                            <div className="grid grid-cols-3 gap-2">
+                                <button
+                                    onClick={onNewFolder}
+                                    className="app-button-secondary flex-col gap-1 px-0 py-2.5"
+                                    title="New Folder"
+                                >
+                                    <FolderPlus className="w-4 h-4" />
+                                    <span className="text-[11px] font-semibold">Folder</span>
+                                </button>
+
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowFileMenu(!showFileMenu)}
+                                        className={cn(
+                                            "app-button-primary w-full flex-col gap-1 px-0 py-2.5",
+                                            showFileMenu && "brightness-105"
+                                        )}
+                                        title="New File"
+                                    >
+                                        <FilePlus className="w-4 h-4" />
+                                        <span className="text-[11px] font-semibold">File</span>
+                                    </button>
+                                    {showFileMenu && (
+                                        <div className="app-panel absolute left-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl py-1">
+                                            <div className="px-3 pb-2 pt-3">
+                                                <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-foreground/42">
+                                                    Create file
+                                                </span>
+                                            </div>
+                                            {['txt', 'md'].map(type => (
+                                                <button
+                                                    key={type}
+                                                    onClick={() => {
+                                                        const promptMsg = type === 'txt'
+                                                            ? 'Enter filename (e.g. notes.txt or script.py):'
+                                                            : `Enter filename for .${type} file:`;
+                                                        const name = prompt(promptMsg);
+                                                        if (name) {
+                                                            if (type === 'txt') {
+                                                                const parts = name.split('.');
+                                                                const ext = parts.length > 1 ? parts.pop() : 'txt';
+                                                                onCreateFile(name, ext || 'txt');
+                                                            } else {
+                                                                onCreateFile(name, type);
+                                                            }
+                                                            setShowFileMenu(false);
+                                                        }
+                                                    }}
+                                                    className="flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left text-sm text-foreground/78 transition-colors hover:bg-[var(--hover)] hover:text-foreground"
+                                                >
+                                                    <span className="w-8 text-right font-mono text-[11px] font-semibold text-accent/80">.{type}</span>
+                                                    <span className="font-medium">
+                                                        {type === 'txt' ? 'Text / Code' : 'Markdown'}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <button
+                                    onClick={onUpload}
+                                    className="app-button-secondary flex-col gap-1 px-0 py-2.5"
+                                    title="Upload File"
+                                >
+                                    <Upload className="w-4 h-4" />
+                                    <span className="text-[11px] font-semibold">Upload</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <div className="relative group">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/40 group-focus-within:text-accent transition-colors" />
-                            <input
-                                type="text"
-                                placeholder="Search items..."
-                                onChange={(e) => onSearch(e.target.value)}
-                                className="w-full bg-background/50 border border-border focus:border-accent/50 focus:ring-1 focus:ring-accent/50 rounded-lg py-1.5 pl-9 pr-3 text-xs outline-none transition-all"
-                            />
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-foreground/42">
+                                    Search library
+                                </span>
+                                {searchQuery?.trim() && (
+                                    <span className="text-xs text-foreground/45">
+                                        {searchResults?.length ?? 0} result{searchResults?.length === 1 ? '' : 's'}
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="group relative">
+                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/38 transition-colors group-focus-within:text-accent" />
+                                <input
+                                    type="text"
+                                    placeholder="Search files and folders"
+                                    onChange={(e) => onSearch(e.target.value)}
+                                    className="app-input pl-10 pr-3 text-sm"
+                                />
+                            </div>
                         </div>
                     </>
                 )}
@@ -166,7 +209,7 @@ export function Sidebar({
 
             <div
                 className={cn(
-                    "flex-grow overflow-y-auto scrollbar-hide px-2",
+                    "flex-grow overflow-y-auto scrollbar-hide px-2 py-3",
                     isTrashView && "opacity-50 pointer-events-none"
                 )}
                 onDragOver={(e) => {
@@ -185,7 +228,7 @@ export function Sidebar({
                 }}
             >
                 <div
-                    className="mb-2 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-foreground/30 hover:bg-white/5 hover:text-foreground/70 rounded cursor-pointer transition-colors"
+                    className="mb-3 cursor-pointer rounded-xl border border-transparent px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-foreground/36 transition-colors hover:border-border hover:bg-[var(--surface-muted)] hover:text-foreground/70"
                     onClick={(e) => {
                         e.stopPropagation();
                         onClearSelection();
@@ -200,7 +243,7 @@ export function Sidebar({
                     isSearching ? (
                         <div className="flex flex-col">
                             {searchResults?.length === 0 ? (
-                                <div className="px-4 py-8 text-center text-xs text-foreground/40">
+                                <div className="px-4 py-10 text-center text-sm text-foreground/40">
                                     No results found
                                 </div>
                             ) : (
@@ -237,29 +280,37 @@ export function Sidebar({
                 )}
             </div>
 
-            <div className="p-4 border-t border-border flex flex-col space-y-2">
+            <div className="border-t border-border/70 p-4">
                 <button
                     onClick={onToggleTrash}
                     className={cn(
-                        "flex items-center space-x-3 w-full p-2 rounded-lg transition-all",
-                        isTrashView ? "bg-red-500/20 text-red-400" : "hover:bg-red-500/10 text-foreground/50 hover:text-red-400"
+                        "w-full justify-between",
+                        "app-button-ghost",
+                        isTrashView && "!border !border-[color:var(--danger)]/35 !bg-[var(--danger-soft)] !text-[color:var(--danger)]"
                     )}
                 >
-                    <Trash2 className="w-4 h-4" />
-                    <span className="text-sm font-medium">Trash bin</span>
+                    <span className="flex items-center gap-3">
+                        <Trash2 className="w-4 h-4" />
+                        <span className="text-sm font-medium">Trash bin</span>
+                    </span>
+                    <ArrowLeft className={cn("h-4 w-4 transition-transform", isTrashView && "rotate-180")} />
                 </button>
 
                 {!isGuest && user && (
-                    <div className="pt-2 flex items-center justify-between group">
-                        <div className="flex items-center space-x-2 truncate">
-                            <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                    <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-border bg-[var(--surface-muted)] px-3 py-3">
+                        <div className="flex min-w-0 items-center gap-3 truncate">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-[oklch(23%_0.03_145)]">
                                 {user.email?.[0].toUpperCase()}
                             </div>
-                            <span className="text-xs text-foreground/60 truncate">{user.email}</span>
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-foreground/40">Account</p>
+                                <p className="truncate text-sm text-foreground/72">{user.email}</p>
+                            </div>
                         </div>
                         <button
                             onClick={onSignOut}
-                            className="p-1.5 hover:bg-white/5 rounded text-foreground/30 hover:text-white transition-all"
+                            aria-label="Sign out"
+                            className="app-icon-button h-10 w-10 min-h-10 min-w-10 rounded-xl"
                             title="Sign Out"
                         >
                             <ArrowLeft className="w-3.5 h-3.5 rotate-180" />

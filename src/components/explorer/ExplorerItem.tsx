@@ -101,10 +101,12 @@ export function ExplorerItem({
     return (
         <div
             className={cn(
-                "group flex items-center px-2 py-1.5 cursor-pointer rounded-md transition-all-200 select-none",
-                isSelected ? "bg-accent/20 text-accent" : "hover:bg-hover text-foreground/70 hover:text-foreground"
+                "group flex min-h-11 cursor-pointer select-none items-center rounded-xl border px-2.5 py-2 transition-all-200",
+                isSelected
+                    ? "border-[oklch(78%_0.165_145_/_0.22)] bg-[var(--accent-soft)] text-foreground shadow-[0_14px_32px_rgba(4,10,7,0.2)]"
+                    : "border-transparent text-foreground/70 hover:border-border hover:bg-[var(--surface-muted)] hover:text-foreground"
             )}
-            style={{ paddingLeft: `${level * 12 + 8}px` }}
+            style={{ paddingLeft: `${level * 12 + 10}px` }}
             onClick={handleClick}
             onDoubleClick={handleDoubleClick}
             onTouchEnd={handleTouchEnd}
@@ -121,7 +123,7 @@ export function ExplorerItem({
                 onDrop?.(e, item);
             }}
         >
-            <div className="w-4 mr-1 flex-shrink-0">
+            <div className="mr-1 flex w-4 shrink-0 items-center justify-center">
                 {item.kind === 'folder' && (
                     <div onClick={(e) => {
                         e.stopPropagation();
@@ -135,7 +137,7 @@ export function ExplorerItem({
                 )}
             </div>
 
-            <div className="mr-2 flex-shrink-0">
+            <div className="mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-raised)]">
                 {getIcon()}
             </div>
 
@@ -149,7 +151,8 @@ export function ExplorerItem({
                     // Just open the context menu here
                     onContextMenu?.(e, item);
                 }}
-                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 rounded transition-opacity"
+                aria-label={`Open actions for ${item.name}`}
+                className="app-icon-button h-9 w-9 min-h-9 min-w-9 rounded-lg opacity-70 sm:opacity-0 sm:group-hover:opacity-100"
             >
                 <MoreVertical className="w-3.5 h-3.5" />
             </button>

@@ -12,19 +12,29 @@ interface HeaderProps {
 
 export function Header({ title, isSidebarOpen, onToggleSidebar, children, className }: HeaderProps) {
     return (
-        <header className={cn("h-14 border-b border-border flex items-center px-4 bg-background shrink-0", className)}>
+        <header
+            className={cn(
+                "h-16 shrink-0 border-b border-border/80 bg-[var(--surface-raised)] px-3 sm:px-5",
+                "flex items-center gap-3",
+                className
+            )}
+        >
             <button
                 onClick={onToggleSidebar}
-                className="p-2 hover:bg-zinc-800 rounded-lg text-foreground/50 hover:text-white transition-colors mr-3"
+                aria-label={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+                className="app-icon-button"
             >
                 {isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
             </button>
 
-            <h1 className="text-lg font-medium text-foreground truncate flex-1">
-                {title}
-            </h1>
+            <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-foreground/45">Workspace</p>
+                <h1 className="truncate text-sm font-semibold text-foreground sm:text-base">
+                    {title ?? 'ORZ Editor'}
+                </h1>
+            </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
                 {children}
             </div>
         </header>

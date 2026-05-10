@@ -85,20 +85,29 @@ export function CodeEditorContainer({ file, initialContent, onSave, isGuest }: C
     const ext = file.name.split('.').pop()?.toLowerCase() || 'txt';
 
     return (
-        <div className="h-full w-full bg-zinc-950 flex flex-col">
+        <div className="flex h-full w-full flex-col bg-[var(--background)]">
             {/* Toolbar */}
-            <div className="h-10 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between px-4 shrink-0">
-                <div className="flex items-center space-x-2 text-xs text-zinc-400">
-                    <span className="font-medium text-zinc-300">{file.name}</span>
-                    {saveStatus === 'saving' && <span className="opacity-70 flex items-center"><Loader2 className="w-3 h-3 animate-spin mr-1" /> Saving...</span>}
-                    {saveStatus === 'error' && <span className="text-red-400">Save Failed</span>}
-                    {saveStatus === 'saved' && <span className="opacity-50">Saved</span>}
+            <div className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-[var(--surface-raised)] px-3 sm:px-4">
+                <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-foreground">{file.name}</div>
+                    <div className="mt-0.5 flex items-center gap-2">
+                        <span className="app-status-pill">{ext} file</span>
+                        {saveStatus === 'saving' && (
+                            <span className="flex items-center gap-1 text-xs text-foreground/48">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                Saving
+                            </span>
+                        )}
+                        {saveStatus === 'error' && <span className="text-xs text-[color:var(--danger)]">Save failed</span>}
+                        {saveStatus === 'saved' && <span className="text-xs text-foreground/48">Saved</span>}
+                    </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                     <button
                         onClick={() => setShowHistory(true)}
-                        className="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                        aria-label="Open version history"
+                        className="app-icon-button h-10 w-10 min-h-10 min-w-10 rounded-xl"
                         title="Version History"
                     >
                         <History className="w-4 h-4" />
@@ -106,7 +115,7 @@ export function CodeEditorContainer({ file, initialContent, onSave, isGuest }: C
 
                     <button
                         onClick={handleManualSave}
-                        className="flex items-center space-x-1.5 text-xs bg-accent hover:bg-accent/90 text-white px-3 py-1.5 rounded transition-colors"
+                        className="app-button-primary px-4"
                     >
                         <Save className="w-3.5 h-3.5" />
                         <span>Save</span>

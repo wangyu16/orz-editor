@@ -12,26 +12,46 @@
 }
 
 :root {
-  --background: #0a0a0b;
-  --sidebar: #121214;
-  --foreground: #f0f0f2;
-  --accent: #96d969;
-  --border: #27272a;
-  --hover: #1e1e21;
+  --background: oklch(16.5% 0.012 145);
+  --sidebar: oklch(21% 0.014 145);
+  --surface-raised: oklch(24.5% 0.016 145);
+  --surface-muted: oklch(19.5% 0.013 145);
+  --foreground: oklch(95% 0.01 145);
+  --foreground-muted: oklch(76% 0.012 145);
+  --accent: oklch(78% 0.165 145);
+  --accent-strong: oklch(72% 0.152 145);
+  --accent-soft: oklch(30% 0.048 145);
+  --border: oklch(30% 0.013 145);
+  --border-strong: oklch(38% 0.016 145);
+  --hover: oklch(27% 0.014 145);
+  --danger: oklch(69% 0.184 28);
+  --danger-soft: oklch(29% 0.052 28);
+}
+
+* {
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image:
+    radial-gradient(circle at top left, oklch(38% 0.07 148 / 0.18), transparent 0 26rem),
+    radial-gradient(circle at 82% 0%, oklch(33% 0.05 188 / 0.12), transparent 0 22rem),
+    linear-gradient(180deg, oklch(18% 0.013 145), var(--background) 24%);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   overflow: hidden;
 }
 
-/* Glassmorphism utilities */
-.glass {
-  background: rgba(18, 18, 20, 0.8);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -46,4 +66,200 @@ body {
 /* Transitions */
 .transition-all-200 {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+
+::selection {
+  background: oklch(44% 0.09 145 / 0.5);
+  color: var(--foreground);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px oklch(78% 0.165 145 / 0.38);
+}
+
+.app-panel {
+  background: linear-gradient(180deg, oklch(24% 0.014 145), var(--sidebar));
+  border: 1px solid var(--border);
+  box-shadow:
+    0 24px 60px rgba(4, 10, 7, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.app-panel-muted {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.app-button-primary,
+.app-button-secondary,
+.app-button-ghost,
+.app-icon-button,
+.app-input,
+.app-status-pill,
+.app-kbd {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    opacity 180ms ease;
+}
+
+.app-button-primary,
+.app-button-secondary,
+.app-button-ghost {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.app-button-primary {
+  background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+  color: oklch(23% 0.03 145);
+  box-shadow: 0 14px 30px oklch(34% 0.09 145 / 0.26);
+}
+
+.app-button-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 34px oklch(34% 0.09 145 / 0.3);
+}
+
+.app-button-secondary {
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--foreground);
+}
+
+.app-button-secondary:hover {
+  background: oklch(27% 0.016 145);
+  border-color: oklch(45% 0.018 145);
+}
+
+.app-button-ghost {
+  color: color-mix(in oklab, var(--foreground) 78%, transparent);
+}
+
+.app-button-ghost:hover {
+  background: var(--hover);
+  color: var(--foreground);
+}
+
+.app-icon-button {
+  display: inline-flex;
+  min-height: 44px;
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  color: color-mix(in oklab, var(--foreground) 72%, transparent);
+}
+
+.app-icon-button:hover {
+  border-color: var(--border);
+  background: var(--hover);
+  color: var(--foreground);
+}
+
+.app-input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-muted);
+  color: var(--foreground);
+  padding: 0.75rem 0.95rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.app-input::placeholder {
+  color: color-mix(in oklab, var(--foreground) 34%, transparent);
+}
+
+.app-input:hover {
+  border-color: var(--border-strong);
+}
+
+.app-input:focus {
+  border-color: color-mix(in oklab, var(--accent) 55%, var(--border));
+}
+
+.app-badge,
+.app-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: oklch(22% 0.015 145 / 0.92);
+  color: color-mix(in oklab, var(--foreground) 78%, transparent);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app-badge {
+  padding: 0.45rem 0.75rem;
+}
+
+.app-status-pill {
+  padding: 0.35rem 0.65rem;
+}
+
+.app-kbd {
+  display: inline-flex;
+  min-width: 1.9rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  color: color-mix(in oklab, var(--foreground) 72%, transparent);
+  padding: 0.3rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.app-toast {
+  background: linear-gradient(180deg, oklch(24% 0.015 145), var(--sidebar));
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 20px 60px rgba(3, 10, 6, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
