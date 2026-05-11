@@ -431,7 +431,8 @@ export default function Home() {
           {activeFile && (
             <button
               onClick={() => setActiveFile(null)}
-              className="p-2 hover:bg-zinc-800 rounded-lg text-foreground/50 hover:text-white transition-colors"
+              aria-label="Close file"
+              className="app-icon-button"
               title="Close Editor"
             >
               <XCircle className="w-5 h-5" />

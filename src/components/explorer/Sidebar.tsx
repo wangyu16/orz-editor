@@ -79,10 +79,6 @@ export function Sidebar({
 
                     <span className="app-badge shrink-0">{isGuest ? 'Guest' : 'Signed in'}</span>
                 </div>
-
-                <p className="mt-4 text-sm leading-relaxed text-foreground/62">
-                    Markdown, code, and media previews collected into one focused editing workspace.
-                </p>
             </div>
 
             <div className="border-y border-border/70 px-4 py-4">
@@ -113,24 +109,24 @@ export function Sidebar({
                             <div className="grid grid-cols-3 gap-2">
                                 <button
                                     onClick={onNewFolder}
-                                    className="app-button-secondary flex-col gap-1 px-0 py-2.5"
+                                    className="app-button-secondary min-h-10 px-0 py-0"
                                     title="New Folder"
+                                    aria-label="New Folder"
                                 >
-                                    <FolderPlus className="w-4 h-4" />
-                                    <span className="text-[11px] font-semibold">Folder</span>
+                                    <FolderPlus className="w-3.5 h-3.5" />
                                 </button>
 
                                 <div className="relative">
                                     <button
                                         onClick={() => setShowFileMenu(!showFileMenu)}
                                         className={cn(
-                                            "app-button-primary w-full flex-col gap-1 px-0 py-2.5",
+                                            "app-button-primary min-h-10 w-full px-0 py-0",
                                             showFileMenu && "brightness-105"
                                         )}
                                         title="New File"
+                                        aria-label="New File"
                                     >
-                                        <FilePlus className="w-4 h-4" />
-                                        <span className="text-[11px] font-semibold">File</span>
+                                        <FilePlus className="w-3.5 h-3.5" />
                                     </button>
                                     {showFileMenu && (
                                         <div className="app-panel absolute left-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl py-1">
@@ -172,11 +168,11 @@ export function Sidebar({
 
                                 <button
                                     onClick={onUpload}
-                                    className="app-button-secondary flex-col gap-1 px-0 py-2.5"
+                                    className="app-button-secondary min-h-10 px-0 py-0"
                                     title="Upload File"
+                                    aria-label="Upload File"
                                 >
-                                    <Upload className="w-4 h-4" />
-                                    <span className="text-[11px] font-semibold">Upload</span>
+                                    <Upload className="w-3.5 h-3.5" />
                                 </button>
                             </div>
                         </div>
@@ -194,12 +190,12 @@ export function Sidebar({
                             </div>
 
                             <div className="group relative">
-                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/38 transition-colors group-focus-within:text-accent" />
+                                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-foreground/38 transition-colors group-focus-within:text-accent" />
                                 <input
                                     type="text"
                                     placeholder="Search files and folders"
                                     onChange={(e) => onSearch(e.target.value)}
-                                    className="app-input pl-10 pr-3 text-sm"
+                                    className="app-input pl-11 pr-3 text-sm"
                                 />
                             </div>
                         </div>

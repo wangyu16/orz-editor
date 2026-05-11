@@ -14,7 +14,7 @@ export function Header({ title, isSidebarOpen, onToggleSidebar, children, classN
     return (
         <header
             className={cn(
-                "h-16 shrink-0 border-b border-border/80 bg-[var(--surface-raised)] px-3 sm:px-5",
+                "h-14 shrink-0 border-b border-border/80 bg-[var(--surface-raised)] px-3 sm:px-5",
                 "flex items-center gap-3",
                 className
             )}
@@ -27,9 +27,11 @@ export function Header({ title, isSidebarOpen, onToggleSidebar, children, classN
                 {isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
             </button>
 
-            <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-foreground/45">Workspace</p>
-                <h1 className="truncate text-sm font-semibold text-foreground sm:text-base">
+            <div className="min-w-0 flex flex-1 items-center gap-2">
+                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.28em] text-foreground/45">
+                    Workspace
+                </span>
+                <h1 className="min-w-0 truncate text-sm font-semibold text-foreground sm:text-base">
                     {title ?? 'ORZ Editor'}
                 </h1>
             </div>
