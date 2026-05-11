@@ -31,7 +31,7 @@ interface SidebarProps {
     // Guest mode support
     isGuest?: boolean;
     guestItems?: IExplorerItem[];
-    user?: any;
+    user?: { email?: string | null } | null;
 }
 
 export function Sidebar({
@@ -64,20 +64,11 @@ export function Sidebar({
     return (
         <div className={cn("flex flex-col bg-sidebar pt-4 transition-all duration-300", className)}>
             <div className="px-4 pb-5">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-border bg-[var(--surface-raised)]">
-                            <Logo className="h-7 w-auto" />
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-foreground/45">
-                                {isGuest ? 'Local session' : 'Cloud workspace'}
-                            </p>
-                            <h2 className="truncate text-base font-semibold text-foreground">ORZ Editor</h2>
-                        </div>
+                <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-border bg-[var(--surface-raised)]">
+                        <Logo className="h-7 w-auto" />
                     </div>
-
-                    <span className="app-badge shrink-0">{isGuest ? 'Guest' : 'Signed in'}</span>
+                    <h2 className="truncate text-base font-semibold text-foreground">ORZ Editor</h2>
                 </div>
             </div>
 
@@ -195,7 +186,7 @@ export function Sidebar({
                                     type="text"
                                     placeholder="Search files and folders"
                                     onChange={(e) => onSearch(e.target.value)}
-                                    className="app-input pl-11 pr-3 text-sm"
+                                    className="app-input pl-12.5 pr-3 text-sm"
                                 />
                             </div>
                         </div>
